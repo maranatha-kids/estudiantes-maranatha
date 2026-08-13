@@ -399,7 +399,7 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
 
             <div className="form-responsive-row">
               <div className="form-group" style={{ marginBottom: '0.8rem' }}>
-                <label style={{ fontSize: '0.85rem' }}>Nombre del Representante</label>
+                <label style={{ fontSize: '0.85rem' }}>Nombre del Representante <span style={{ color: '#ef4444' }}>*</span></label>
                 <input 
                   type="text" 
                   required 
@@ -408,10 +408,15 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                   placeholder="Ej. Juan" 
                   style={{ padding: '0.65rem 0.8rem', fontSize: '0.95rem' }}
                 />
+                {!nombreRep.trim() && (
+                  <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                    ⚠️ Falta completar este campo
+                  </span>
+                )}
               </div>
 
               <div className="form-group" style={{ marginBottom: '0.8rem' }}>
-                <label style={{ fontSize: '0.85rem' }}>Apellido del Representante</label>
+                <label style={{ fontSize: '0.85rem' }}>Apellido del Representante <span style={{ color: '#ef4444' }}>*</span></label>
                 <input 
                   type="text" 
                   required 
@@ -420,11 +425,16 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                   placeholder="Ej. Pérez" 
                   style={{ padding: '0.65rem 0.8rem', fontSize: '0.95rem' }}
                 />
+                {!apellidoRep.trim() && (
+                  <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                    ⚠️ Falta completar este campo
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="form-group" style={{ marginBottom: '0.8rem' }}>
-              <label style={{ fontSize: '0.85rem' }}>Teléfono de Contacto</label>
+              <label style={{ fontSize: '0.85rem' }}>Teléfono de Contacto <span style={{ color: '#ef4444' }}>*</span></label>
               <div style={{ display: 'flex', gap: '0.4rem', width: '100%' }}>
                 <select 
                   value={codigoTelefono} 
@@ -448,10 +458,15 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                   style={{ flex: 1, minWidth: 0, width: '100%', padding: '0.65rem 0.6rem', fontSize: '0.95rem', letterSpacing: '0.5px' }}
                 />
               </div>
+              {numeroTelefono.length !== 7 && (
+                <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                  {numeroTelefono.length === 0 ? '⚠️ Falta completar este campo' : `⚠️ Falta completar este campo (${numeroTelefono.length}/7 dígitos)`}
+                </span>
+              )}
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label style={{ fontSize: '0.85rem' }}>Parentesco con el niño/a</label>
+              <label style={{ fontSize: '0.85rem' }}>Parentesco con el niño/a <span style={{ color: '#ef4444' }}>*</span></label>
               <select 
                 value={parentescoRep} 
                 onChange={e => setParentescoRep(e.target.value)}
@@ -467,14 +482,21 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
               </select>
 
               {parentescoRep === 'Otro' && (
-                <input 
-                  type="text" 
-                  required 
-                  value={otroParentesco} 
-                  onChange={e => setOtroParentesco(e.target.value)} 
-                  placeholder="Escriba su parentesco" 
-                  style={{ marginTop: '0.5rem', padding: '0.65rem 0.8rem', fontSize: '0.95rem' }}
-                />
+                <>
+                  <input 
+                    type="text" 
+                    required 
+                    value={otroParentesco} 
+                    onChange={e => setOtroParentesco(e.target.value)} 
+                    placeholder="Escriba su parentesco" 
+                    style={{ marginTop: '0.5rem', padding: '0.65rem 0.8rem', fontSize: '0.95rem' }}
+                  />
+                  {!otroParentesco.trim() && (
+                    <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                      ⚠️ Falta completar este campo
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -487,7 +509,7 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
 
             <div className="form-responsive-row">
               <div className="form-group" style={{ marginBottom: '0.8rem' }}>
-                <label style={{ fontSize: '0.85rem' }}>Nombre del Niño/a</label>
+                <label style={{ fontSize: '0.85rem' }}>Nombre del Niño/a <span style={{ color: '#ef4444' }}>*</span></label>
                 <input 
                   type="text" 
                   required 
@@ -496,10 +518,15 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                   placeholder="Ej. Mateo" 
                   style={{ padding: '0.65rem 0.8rem', fontSize: '0.95rem' }}
                 />
+                {!nombreEst.trim() && (
+                  <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                    ⚠️ Falta completar este campo
+                  </span>
+                )}
               </div>
 
               <div className="form-group" style={{ marginBottom: '0.8rem' }}>
-                <label style={{ fontSize: '0.85rem' }}>Apellido del Niño/a</label>
+                <label style={{ fontSize: '0.85rem' }}>Apellido del Niño/a <span style={{ color: '#ef4444' }}>*</span></label>
                 <input 
                   type="text" 
                   required 
@@ -508,12 +535,17 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                   placeholder="Ej. Pérez" 
                   style={{ padding: '0.65rem 0.8rem', fontSize: '0.95rem' }}
                 />
+                {!apellidoEst.trim() && (
+                  <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                    ⚠️ Falta completar este campo
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="form-responsive-row" style={{ alignItems: 'flex-start' }}>
               <div className="form-group" style={{ marginBottom: '0.8rem' }}>
-                <label style={{ fontSize: '0.85rem' }}>Género</label>
+                <label style={{ fontSize: '0.85rem' }}>Género <span style={{ color: '#ef4444' }}>*</span></label>
                 <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.4rem' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                     <input 
@@ -536,6 +568,11 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                     /> Niña
                   </label>
                 </div>
+                {!generoEst && (
+                  <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                    ⚠️ Falta completar este campo
+                  </span>
+                )}
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
@@ -545,6 +582,11 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                   minYear={2010} 
                   required={true} 
                 />
+                {!fechaNacimientoEst && (
+                  <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                    ⚠️ Falta completar este campo
+                  </span>
+                )}
               </div>
             </div>
 
@@ -621,6 +663,11 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                 <span><strong>Se va solo/a</strong></span>
               </label>
             </div>
+            {!modoSalida && (
+              <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.4rem', display: 'block', fontWeight: 'bold' }}>
+                ⚠️ Falta completar este campo
+              </span>
+            )}
           </div>
 
           <button 

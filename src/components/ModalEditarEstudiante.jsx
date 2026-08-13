@@ -237,29 +237,39 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
 
             <div className="form-responsive-row">
               <div className="form-group" style={{ marginBottom: '0.8rem' }}>
-                <label style={{ fontSize: '0.85rem' }}>Nombre</label>
+                <label style={{ fontSize: '0.85rem' }}>Nombre <span style={{ color: '#ef4444' }}>*</span></label>
                 <input 
                   type="text" 
                   required 
                   value={nombre} 
                   onChange={e => setNombre(e.target.value)} 
                 />
+                {!nombre.trim() && (
+                  <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                    ⚠️ Falta completar este campo
+                  </span>
+                )}
               </div>
 
               <div className="form-group" style={{ marginBottom: '0.8rem' }}>
-                <label style={{ fontSize: '0.85rem' }}>Apellido</label>
+                <label style={{ fontSize: '0.85rem' }}>Apellido <span style={{ color: '#ef4444' }}>*</span></label>
                 <input 
                   type="text" 
                   required 
                   value={apellido} 
                   onChange={e => setApellido(e.target.value)} 
                 />
+                {!apellido.trim() && (
+                  <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                    ⚠️ Falta completar este campo
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="form-responsive-row">
               <div className="form-group" style={{ marginBottom: '0.8rem' }}>
-                <label style={{ fontSize: '0.85rem' }}>Género</label>
+                <label style={{ fontSize: '0.85rem' }}>Género <span style={{ color: '#ef4444' }}>*</span></label>
                 <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.4rem' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                     <input 
@@ -280,6 +290,11 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
                     /> Niña
                   </label>
                 </div>
+                {!genero && (
+                  <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                    ⚠️ Falta completar este campo
+                  </span>
+                )}
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
@@ -289,6 +304,11 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
                   minYear={2010} 
                   required={true} 
                 />
+                {!fechaNacimiento && (
+                  <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                    ⚠️ Falta completar este campo
+                  </span>
+                )}
               </div>
             </div>
 
@@ -306,13 +326,18 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
             </h3>
 
             <div className="form-group" style={{ marginBottom: '0.8rem' }}>
-              <label style={{ fontSize: '0.85rem' }}>Nombre / Información Representante</label>
+              <label style={{ fontSize: '0.85rem' }}>Nombre / Información Representante <span style={{ color: '#ef4444' }}>*</span></label>
               <input 
                 type="text" 
                 value={nombreRep} 
                 onChange={e => setNombreRep(e.target.value)} 
                 placeholder="Ej. Juan Pérez (Padre)"
               />
+              {!nombreRep.trim() && (
+                <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                  ⚠️ Falta completar este campo
+                </span>
+              )}
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -321,7 +346,7 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
                 <select 
                   value={codigoTelefono} 
                   onChange={e => setCodigoTelefono(e.target.value)}
-                  style={{ width: '95px', minWidth: '95px', flexShrink: 0, padding: '0.65rem 0.5rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.95rem', fontWeight: 'bold' }}
+                  style={{ width: '85px', minWidth: '85px', flexShrink: 0, padding: '0.65rem 0.3rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.9rem', fontWeight: 'bold' }}
                 >
                   <option value="0414">0414</option>
                   <option value="0424">0424</option>
@@ -339,6 +364,11 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
                   style={{ flex: 1, width: '100%', padding: '0.65rem 0.8rem', fontSize: '0.95rem', letterSpacing: '0.5px' }}
                 />
               </div>
+              {numeroTelefono && numeroTelefono.length !== 7 && (
+                <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
+                  ⚠️ Falta completar este campo ({numeroTelefono.length}/7 dígitos)
+                </span>
+              )}
             </div>
           </div>
 
@@ -395,6 +425,11 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
                 <span><strong>Se va solo/a</strong></span>
               </label>
             </div>
+            {!modoSalida && (
+              <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.4rem', display: 'block', fontWeight: 'bold' }}>
+                ⚠️ Falta completar este campo
+              </span>
+            )}
           </div>
 
           {/* Botones */}
