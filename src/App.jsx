@@ -6,7 +6,8 @@ import GraduacionAnimation from './components/GraduacionAnimation';
 import RegistroRepresentante from './components/RegistroRepresentante';
 import ModalCerrarDia from './components/ModalCerrarDia';
 import ModalQR from './components/ModalQR';
-import { Sparkles, Archive, Users, QrCode, UserCheck } from 'lucide-react';
+import ModalGraduados from './components/ModalGraduados';
+import { Sparkles, Archive, Users, QrCode, UserCheck, GraduationCap } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
   const [isCerrando, setIsCerrando] = useState(false);
   const [graduacionData, setGraduacionData] = useState(null);
   const [mostrarModalQR, setMostrarModalQR] = useState(false);
+  const [mostrarModalGraduados, setMostrarModalGraduados] = useState(false);
   const [modalCerrarData, setModalCerrarData] = useState(null); // { activos: [...] }
   const [esPublico, setEsPublico] = useState(false);
 
@@ -186,6 +188,15 @@ function App() {
             <Archive size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }}/> 
             Ver Historial
           </button>
+
+          <button 
+            onClick={() => setMostrarModalGraduados(true)}
+            style={{ background: 'rgba(234, 179, 8, 0.12)', color: '#fef08a', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '0.75rem 1.2rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            title="Ver registro discreto de estudiantes graduados"
+          >
+            <GraduationCap size={18} color="#eab308" /> 
+            Graduados
+          </button>
         </div>
       </header>
 
@@ -233,6 +244,14 @@ function App() {
       {/* Modal QR Code */}
       {mostrarModalQR && (
         <ModalQR onClose={() => setMostrarModalQR(false)} />
+      )}
+
+      {/* Modal Discreto de Estudiantes Graduados */}
+      {mostrarModalGraduados && (
+        <ModalGraduados 
+          onClose={() => setMostrarModalGraduados(false)} 
+          onEstudianteEditado={handleEstudianteAgregado}
+        />
       )}
 
       {/* Animación de Graduación */}
