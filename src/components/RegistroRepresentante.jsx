@@ -44,23 +44,39 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
 
   const [ticketSesion, setTicketSesion] = useState(null);
 
-  // Generar número de ticket secuencial (000-400) basado en cuántos estudiantes activos hay hoy
+  // Generar número de ticket único e incremental que NUNCA se repite
   const generarTicket = async () => {
-    const { count, error } = await supabase
-      .from('estudiantes')
-      .select('*', { count: 'exact', head: true })
-      .eq('activo_este_domingo', true);
+    try {
+      const { data: ests } = await supabase
+        .from('estudiantes')
+        .select('nombre_representante');
 
-    if (error) {
-      console.error('Error al obtener conteo de tickets:', error);
-      return '001';
-    }
+      const { data: hist } = await supabase
+        .from('historial_domingos')
+        .select('estudiantes');
 
-    const siguiente = (count || 0) + 1;
-    if (siguiente > 400) {
-      return '400';
+      let maxTicket = 0;
+
+      const procesarCadena = (str) => {
+        if (!str) return;
+        const match = str.match(/Ticket:\s*#?(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxTicket) maxTicket = num;
+        }
+      };
+
+      (ests || []).forEach(e => procesarCadena(e.nombre_representante));
+      (hist || []).forEach(h => {
+        (h.estudiantes || []).forEach(e => procesarCadena(e.nombre_representante));
+      });
+
+      const siguiente = maxTicket + 1;
+      return String(siguiente).padStart(3, '0');
+    } catch (err) {
+      console.error('Error al generar ticket único:', err);
+      return '067';
     }
-    return String(siguiente).padStart(3, '0');
   };
 
   const edad = calcularEdad(fechaNacimientoEst);
