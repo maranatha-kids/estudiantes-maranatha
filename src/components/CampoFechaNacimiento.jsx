@@ -16,7 +16,7 @@ const MESES = [
 ];
 
 export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, required = true }) {
-  // Modos disponibles: 'teclado' (escribir DD/MM/AAAA con teclado numérico), 'desplegables', 'calendario'
+  // Modos disponibles: 'teclado' (escribir DD/MM/AAAA) o 'desplegables' (seleccionar de lista)
   const [modo, setModo] = useState('teclado');
 
   const diaRef = useRef(null);
@@ -25,7 +25,6 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
 
   const hoyObj = new Date();
   const hoyAnio = hoyObj.getFullYear();
-  const fechaMax = `${hoyAnio}-${String(hoyObj.getMonth() + 1).padStart(2, '0')}-${String(hoyObj.getDate()).padStart(2, '0')}`;
 
   // Desglosar valor YYYY-MM-DD
   const partes = (value || '').split('-');
@@ -109,7 +108,7 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
           Fecha de Nacimiento
         </label>
         
-        <div style={{ display: 'flex', gap: '0.2rem' }}>
+        <div style={{ display: 'flex', gap: '0.3rem' }}>
           <button
             type="button"
             onClick={() => setModo('teclado')}
@@ -117,15 +116,15 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
               background: modo === 'teclado' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
               border: modo === 'teclado' ? '1px solid var(--accent-primary)' : '1px solid transparent',
               color: modo === 'teclado' ? 'white' : 'var(--text-secondary)',
-              fontSize: '0.75rem',
+              fontSize: '0.78rem',
               cursor: 'pointer',
-              padding: '2px 6px',
+              padding: '3px 8px',
               borderRadius: '4px',
               fontWeight: modo === 'teclado' ? 'bold' : 'normal'
             }}
             title="Escribir números directamente"
           >
-            ⌨️ Teclado
+            Teclado
           </button>
 
           <button
@@ -135,33 +134,15 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
               background: modo === 'desplegables' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
               border: modo === 'desplegables' ? '1px solid var(--accent-primary)' : '1px solid transparent',
               color: modo === 'desplegables' ? 'white' : 'var(--text-secondary)',
-              fontSize: '0.75rem',
+              fontSize: '0.78rem',
               cursor: 'pointer',
-              padding: '2px 6px',
+              padding: '3px 8px',
               borderRadius: '4px',
               fontWeight: modo === 'desplegables' ? 'bold' : 'normal'
             }}
             title="Seleccionar de lista desplegable"
           >
-            📋 Lista
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setModo('calendario')}
-            style={{
-              background: modo === 'calendario' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
-              border: modo === 'calendario' ? '1px solid var(--accent-primary)' : '1px solid transparent',
-              color: modo === 'calendario' ? 'white' : 'var(--text-secondary)',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              fontWeight: modo === 'calendario' ? 'bold' : 'normal'
-            }}
-            title="Usar calendario del navegador"
-          >
-            📅 Calendario
+            Lista
           </button>
         </div>
       </div>
@@ -290,18 +271,6 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
             ))}
           </select>
         </div>
-      )}
-
-      {modo === 'calendario' && (
-        <input
-          type="date"
-          required={required}
-          min={`${minYear}-01-01`}
-          max={fechaMax}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          style={{ width: '100%', padding: '0.65rem 0.8rem', fontSize: '0.95rem' }}
-        />
       )}
     </div>
   );

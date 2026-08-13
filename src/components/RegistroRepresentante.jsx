@@ -288,8 +288,8 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
             <p style={{ margin: '0.3rem 0' }}><strong>Representante:</strong> {ticketGuardado.representante}</p>
             <p style={{ margin: '0.3rem 0' }}><strong>Parentesco:</strong> {ticketGuardado.parentesco}</p>
             <p style={{ margin: '0.3rem 0' }}><strong>Teléfono:</strong> {ticketGuardado.telefono}</p>
-            <p style={{ margin: '0.3rem 0' }}><strong>Modo de Salida:</strong> {ticketGuardado.modoSalida === 'Se va solo/a' ? '🚶 Se va solo/a' : '🚗 Lo vienen a buscar'}</p>
-            <p style={{ margin: '0.3rem 0' }}><strong>Estado:</strong> {ticketGuardado.salon === 'Graduado' ? '🎓 Graduado' : ticketGuardado.salon}</p>
+            <p style={{ margin: '0.3rem 0' }}><strong>Modo de Salida:</strong> {ticketGuardado.modoSalida === 'Se va solo/a' ? 'Se va solo/a' : 'Lo vienen a buscar'}</p>
+            <p style={{ margin: '0.3rem 0' }}><strong>Estado:</strong> {ticketGuardado.salon === 'Graduado' ? 'Graduado' : ticketGuardado.salon}</p>
           </div>
 
           <button 
@@ -541,7 +541,7 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
                   onChange={e => setModoSalida(e.target.value)} 
                   required 
                 />
-                <span>🚗 <strong>Lo vienen a buscar</strong></span>
+                <span><strong>Lo vienen a buscar</strong></span>
               </label>
 
               <label style={{
@@ -564,7 +564,7 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
                   onChange={e => setModoSalida(e.target.value)} 
                   required 
                 />
-                <span>🚶 <strong>Se va solo/a</strong></span>
+                <span><strong>Se va solo/a</strong></span>
               </label>
             </div>
           </div>

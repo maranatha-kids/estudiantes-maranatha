@@ -167,7 +167,7 @@ export default function ListaEstudiantes({ refreshTrigger }) {
                             padding: '0.2rem 0.5rem',
                             borderRadius: '6px'
                           }}>
-                            {modoSalidaCard === 'Se va solo/a' ? '🚶 Se va solo/a' : '🚗 Lo vienen a buscar'}
+                            {modoSalidaCard === 'Se va solo/a' ? 'Se va solo/a' : 'Lo vienen a buscar'}
                           </div>
                         )}
                       </div>

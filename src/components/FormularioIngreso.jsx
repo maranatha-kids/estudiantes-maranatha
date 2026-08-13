@@ -323,7 +323,7 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
                 onChange={e => setModoSalida(e.target.value)}
                 required
               />
-              <span>🚗 <strong>Lo vienen a buscar</strong></span>
+              <span><strong>Lo vienen a buscar</strong></span>
             </label>
 
             <label style={{
@@ -346,7 +346,7 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
                 onChange={e => setModoSalida(e.target.value)}
                 required
               />
-              <span>🚶 <strong>Se va solo/a</strong></span>
+              <span><strong>Se va solo/a</strong></span>
             </label>
           </div>
         </div>
