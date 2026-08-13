@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { X, Search, GraduationCap, Phone, ShieldCheck } from 'lucide-react';
+import { X, Search, GraduationCap, Phone, ShieldCheck, Trash2 } from 'lucide-react';
 import ModalEditarEstudiante from './ModalEditarEstudiante';
+import ModalConfirmacion from './ModalConfirmacion';
 
 function calcularEdad(fechaString) {
   if (!fechaString) return 0;
@@ -24,7 +25,11 @@ export default function ModalGraduados({ onClose, onEstudianteEditado }) {
   const [graduados, setGraduados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
+  
+  // Modales
   const [estudianteAEditar, setEstudianteAEditar] = useState(null);
+  const [estudianteAEliminar, setEstudianteAEliminar] = useState(null);
+  const [isEliminando, setIsEliminando] = useState(false);
 
   useEffect(() => {
     fetchGraduados();
@@ -51,6 +56,25 @@ export default function ModalGraduados({ onClose, onEstudianteEditado }) {
       setGraduados(filtradosGraduados);
     }
     setLoading(false);
+  };
+
+  const handleConfirmarEliminar = async () => {
+    if (!estudianteAEliminar) return;
+    setIsEliminando(true);
+    const { error } = await supabase
+      .from('estudiantes')
+      .delete()
+      .eq('id', estudianteAEliminar.id);
+
+    if (error) {
+      console.error('Error al eliminar graduado:', error);
+      alert('Hubo un error al eliminar el registro.');
+    } else {
+      setEstudianteAEliminar(null);
+      await fetchGraduados();
+      if (onEstudianteEditado) onEstudianteEditado();
+    }
+    setIsEliminando(false);
   };
 
   const limpiarNombreRepresentante = (repInfo) => {
@@ -175,9 +199,20 @@ export default function ModalGraduados({ onClose, onEstudianteEditado }) {
                         <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'white' }}>
                           {e.nombre} {e.apellido}
                         </div>
-                        <span style={{ background: 'rgba(234, 179, 8, 0.2)', border: '1px solid #eab308', color: '#fef08a', fontSize: '0.75rem', fontWeight: 'bold', padding: '0.15rem 0.5rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                          🎓 Graduado/a
-                        </span>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span style={{ background: 'rgba(234, 179, 8, 0.2)', border: '1px solid #eab308', color: '#fef08a', fontSize: '0.75rem', fontWeight: 'bold', padding: '0.15rem 0.5rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            🎓 Graduado/a
+                          </span>
+
+                          <button
+                            onClick={() => setEstudianteAEliminar(e)}
+                            style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '0.35rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Eliminar registro de graduado"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </div>
 
                       <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
@@ -204,6 +239,18 @@ export default function ModalGraduados({ onClose, onEstudianteEditado }) {
               })
             )}
           </div>
+        )}
+
+        {/* Modal Confirmación de Eliminación */}
+        {estudianteAEliminar && (
+          <ModalConfirmacion
+            titulo="¿Eliminar Estudiante Graduado?"
+            mensaje={`¿Estás seguro de que deseas eliminar permanentemente a ${estudianteAEliminar.nombre} ${estudianteAEliminar.apellido} del registro de graduados?`}
+            textoBotonConfirmar="Sí, Eliminar"
+            onCancelar={() => setEstudianteAEliminar(null)}
+            onConfirmar={handleConfirmarEliminar}
+            isCargando={isEliminando}
+          />
         )}
 
         {/* Modal Editar dentro de Graduados si se requiere */}
