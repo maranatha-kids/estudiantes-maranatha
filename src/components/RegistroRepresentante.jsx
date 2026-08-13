@@ -42,6 +42,26 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [ticketGuardado, setTicketGuardado] = useState(null);
+  const [isSalonLleno, setIsSalonLleno] = useState(false);
+
+  useEffect(() => {
+    comprobarCapacidad();
+  }, []);
+
+  const comprobarCapacidad = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('estudiantes')
+        .select('*', { count: 'exact', head: true })
+        .eq('activo_este_domingo', true);
+
+      if (!error && count >= 300) {
+        setIsSalonLleno(true);
+      }
+    } catch (err) {
+      console.error('Error al comprobar capacidad:', err);
+    }
+  };
 
   // Generar número de ticket único para el día activo (se reinicia al cerrar el día)
   const generarTicket = async () => {
@@ -133,11 +153,7 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
 
     try {
       const parentescoFinal = parentescoRep === 'Otro' ? otroParentesco : parentescoRep;
-      let numTicketCalculado = await generarTicket();
       const salonAsignado = 'Usos Múltiples';
-
-      // Formatear la cadena del representante para incluir Parentesco, Ticket y Salida
-      let infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Ticket: #${numTicketCalculado} | Salida: ${modoSalida})`;
 
       // Buscar si el niño ya existía previamente por Nombre y Apellido
       const { data: existencias } = await supabase
@@ -147,6 +163,24 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
         .ilike('apellido', apellidoEst.trim());
 
       let estudianteExistente = existencias && existencias.length > 0 ? existencias[0] : null;
+
+      // Verificar capacidad máxima de 300 estudiantes activos
+      const { count: totalActivosHoy } = await supabase
+        .from('estudiantes')
+        .select('*', { count: 'exact', head: true })
+        .eq('activo_este_domingo', true);
+
+      if ((!estudianteExistente || !estudianteExistente.activo_este_domingo) && totalActivosHoy >= 300) {
+        setIsSalonLleno(true);
+        setErrorMsg('El salón de Usos Múltiples ha alcanzado su capacidad máxima (300 estudiantes). El salón está lleno.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      let numTicketCalculado = await generarTicket();
+
+      // Formatear la cadena del representante para incluir Parentesco, Ticket y Salida
+      let infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Ticket: #${numTicketCalculado} | Salida: ${modoSalida})`;
       let targetId = null;
 
       if (estudianteExistente) {
@@ -325,6 +359,15 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
             Maranatha Kids — Ingrese sus datos y los del niño/a para obtener su número de turno.
           </p>
         </div>
+
+        {isSalonLleno && (
+          <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '2px solid #ef4444', color: '#ef4444', padding: '1rem', borderRadius: '12px', marginBottom: '1.2rem', textAlign: 'center', fontWeight: 'bold' }}>
+            ⚠️ Capacidad Máxima Alcanzada (300 Estudiantes)
+            <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.88rem', color: 'white', fontWeight: 'normal' }}>
+              El salón de Usos Múltiples ha alcanzado su límite máximo de 300 estudiantes para el día de hoy. El salón está lleno.
+            </p>
+          </div>
+        )}
 
         {errorMsg && (
           <div className="toast-error" style={{ marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
@@ -568,6 +611,7 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
             className="btn-primary" 
             disabled={
               isSubmitting || 
+              isSalonLleno ||
               !nombreRep.trim() || 
               !apellidoRep.trim() || 
               numeroTelefono.length !== 7 || 
@@ -580,9 +624,9 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
               edad < 8 || 
               edad > 12
             }
-            style={{ width: '100%', padding: '0.9rem', fontSize: '1rem', fontWeight: 'bold' }}
+            style={{ width: '100%', padding: '0.9rem', fontSize: '1rem', fontWeight: 'bold', background: isSalonLleno ? '#ef4444' : undefined }}
           >
-            {isSubmitting ? 'Generando Turno...' : 'Obtener Número de Turno'}
+            {isSubmitting ? 'Generando Turno...' : (isSalonLleno ? 'Salón Lleno (Capacidad 300 Alcanzada)' : 'Obtener Número de Turno')}
           </button>
         </form>
       </div>

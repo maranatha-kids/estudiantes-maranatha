@@ -94,6 +94,12 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
 
   // Accion rapida: Confirmar llegada con 1 clic
   const handleConfirmarLlegada = async (estudiante) => {
+    const totalActivosHoy = todosLosEstudiantes.filter(e => e.activo_este_domingo).length;
+    if (!estudiante.activo_este_domingo && totalActivosHoy >= 300) {
+      alert('El salón de Usos Múltiples ha alcanzado su capacidad máxima (300 estudiantes). El salón está lleno.');
+      return;
+    }
+
     setCargandoId(estudiante.id);
     try {
       const { error } = await supabase
@@ -123,6 +129,12 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
 
     if (edad < 8 || edad > 12) {
       alert('La edad debe estar entre 8 y 12 años.');
+      return;
+    }
+
+    const totalActivosHoy = todosLosEstudiantes.filter(e => e.activo_este_domingo).length;
+    if (totalActivosHoy >= 300) {
+      alert('El salón de Usos Múltiples ha alcanzado su capacidad máxima (300 estudiantes). El salón está lleno.');
       return;
     }
 
