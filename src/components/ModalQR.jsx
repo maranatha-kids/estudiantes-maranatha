@@ -91,30 +91,18 @@ export default function ModalQR({ onClose }) {
         </p>
 
         {/* Botones de acción */}
-        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
           <button 
             onClick={handleCopiarLink}
             style={{
-              flex: 1,
+              width: '100%',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-              background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)',
-              color: 'white', padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem'
+              background: 'var(--accent-gradient)', border: 'none',
+              color: 'white', padding: '0.8rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 'bold'
             }}
           >
             {copiado ? <Check size={18} color="#10b981" /> : <Copy size={18} />}
-            {copiado ? '¡Copiado!' : 'Copiar Enlace'}
-          </button>
-
-          <button 
-            onClick={handleAbrirLink}
-            style={{
-              flex: 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-              background: 'var(--accent-gradient)', border: 'none',
-              color: 'white', padding: '0.75rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold'
-            }}
-          >
-            <ExternalLink size={18} /> Probar Formulario
+            {copiado ? '¡Enlace Copiado al Portapapeles!' : 'Copiar Enlace Directo'}
           </button>
         </div>
       </div>
