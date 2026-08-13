@@ -121,8 +121,8 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
     e.preventDefault();
     if (!nombre.trim() || !apellido.trim() || !genero || !fechaNacimiento) return;
 
-    if (edad < 8 || edad > 13) {
-      alert('La edad debe estar entre 8 y 13 años.');
+    if (edad < 8 || edad > 12) {
+      alert('La edad debe estar entre 8 y 12 años.');
       return;
     }
 

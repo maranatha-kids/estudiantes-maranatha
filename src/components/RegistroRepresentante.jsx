@@ -126,8 +126,8 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
       return;
     }
 
-    if (edad > 13) {
-      setErrorMsg('El niño no puede tener más de 13 años (Límite máximo permitido: 13 años).');
+    if (edad > 12) {
+      setErrorMsg('El niño no puede tener más de 12 años (Límite máximo permitido: 12 años).');
       return;
     }
 
@@ -497,14 +497,14 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
             </div>
 
             {fechaNacimientoEst && (
-              <div style={{ marginTop: '0.8rem', padding: '0.6rem', background: (edad < 8 || edad > 13) ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', fontSize: '0.85rem' }}>
+              <div style={{ marginTop: '0.8rem', padding: '0.6rem', background: (edad < 8 || edad > 12) ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', fontSize: '0.85rem' }}>
                 <p style={{ margin: 0 }}><strong>Edad calculada:</strong> {edad} años</p>
                 <p style={{ margin: '0.2rem 0 0 0' }}>
-                  <strong>Salón asignado:</strong> {edad > 13 ? '❌ Excede límite (Mayor a 13 años)' : (edad >= 8 ? 'Usos Múltiples' : 'Menor de 8 años')}
+                  <strong>Salón asignado:</strong> {edad > 12 ? '❌ Excede límite (Mayor a 12 años)' : (edad >= 8 ? 'Usos Múltiples' : 'Menor de 8 años')}
                 </p>
-                {edad > 13 && (
+                {edad > 12 && (
                   <p style={{ color: '#ef4444', marginTop: '0.3rem', margin: '0.3rem 0 0 0', fontWeight: 'bold' }}>
-                    ⚠️ El límite de edad permitido es de máximo 13 años.
+                    ⚠️ El límite de edad permitido es de máximo 12 años.
                   </p>
                 )}
               </div>
@@ -584,7 +584,7 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
               !fechaNacimientoEst || 
               !modoSalida ||
               edad < 8 || 
-              edad > 13
+              edad > 12
             }
             style={{ width: '100%', padding: '0.9rem', fontSize: '1rem', fontWeight: 'bold' }}
           >

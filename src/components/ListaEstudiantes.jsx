@@ -62,7 +62,7 @@ export default function ListaEstudiantes({ refreshTrigger }) {
   });
 
   const agrupados = {
-    'Usos Múltiples': estudiantesFiltrados.filter(e => e.edad >= 8 && e.edad <= 13)
+    'Usos Múltiples': estudiantesFiltrados.filter(e => e.edad >= 8 && e.edad <= 12)
   };
 
   if (loading) {
@@ -264,7 +264,7 @@ export default function ListaEstudiantes({ refreshTrigger }) {
         >
           <Folder color="var(--accent-primary)" fill="var(--glass-border)" size={64} style={{ marginBottom: '1rem' }} />
           <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Usos Múltiples</h3>
-          <span style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>8 a 13 años</span>
+          <span style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>8 a 12 años</span>
           <span className="salon-badge" style={{ fontSize: '1.1rem', padding: '0.5rem 1rem' }}>
             Total: {agrupados['Usos Múltiples'].length} | {agrupados['Usos Múltiples'].filter(e=>e.genero==='Niño').length} Niños | {agrupados['Usos Múltiples'].filter(e=>e.genero==='Niña').length} Niñas
           </span>

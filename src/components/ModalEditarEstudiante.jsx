@@ -138,8 +138,8 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
         setIsSubmitting(false);
         return;
       }
-      if (edadCalculada > 13) {
-        setErrorMsg('El estudiante no puede tener más de 13 años (Límite permitido: 13 años).');
+      if (edadCalculada > 12) {
+        setErrorMsg('El estudiante no puede tener más de 12 años (Límite permitido: 12 años).');
         setIsSubmitting(false);
         return;
       }
@@ -293,8 +293,8 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
             </div>
 
             {fechaNacimiento && (
-              <div style={{ marginTop: '0.8rem', padding: '0.5rem', background: (edadCalculada < 8 || edadCalculada > 13) ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', fontSize: '0.85rem' }}>
-                Edad calculada: <strong>{edadCalculada} años</strong> | Salón: <strong>{edadCalculada > 13 ? '❌ Excede límite (Máx. 13 años)' : (edadCalculada >= 8 ? 'Usos Múltiples' : 'Menor de 8 años')}</strong>
+              <div style={{ marginTop: '0.8rem', padding: '0.5rem', background: (edadCalculada < 8 || edadCalculada > 12) ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', fontSize: '0.85rem' }}>
+                Edad calculada: <strong>{edadCalculada} años</strong> | Salón: <strong>{edadCalculada > 12 ? '❌ Excede límite (Máx. 12 años)' : (edadCalculada >= 8 ? 'Usos Múltiples' : 'Menor de 8 años')}</strong>
               </div>
             )}
           </div>
