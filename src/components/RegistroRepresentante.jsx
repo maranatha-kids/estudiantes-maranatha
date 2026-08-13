@@ -425,11 +425,11 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
 
             <div className="form-group" style={{ marginBottom: '0.8rem' }}>
               <label style={{ fontSize: '0.85rem' }}>Teléfono de Contacto</label>
-              <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', width: '100%' }}>
                 <select 
                   value={codigoTelefono} 
                   onChange={e => setCodigoTelefono(e.target.value)}
-                  style={{ width: '95px', minWidth: '95px', flexShrink: 0, padding: '0.65rem 0.5rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.95rem', fontWeight: 'bold' }}
+                  style={{ width: '85px', minWidth: '85px', flexShrink: 0, padding: '0.65rem 0.3rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.9rem', fontWeight: 'bold' }}
                 >
                   <option value="0414">0414</option>
                   <option value="0424">0424</option>
@@ -445,7 +445,7 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                   value={numeroTelefono} 
                   onChange={e => setNumeroTelefono(e.target.value.replace(/\D/g, '').slice(0, 7))} 
                   placeholder="1234567" 
-                  style={{ flex: 1, width: '100%', padding: '0.65rem 0.8rem', fontSize: '0.95rem', letterSpacing: '0.5px' }}
+                  style={{ flex: 1, minWidth: 0, width: '100%', padding: '0.65rem 0.6rem', fontSize: '0.95rem', letterSpacing: '0.5px' }}
                 />
               </div>
             </div>
@@ -572,18 +572,19 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
               Indique cómo se retirará el niño/a al finalizar la actividad de Maranatha Kids:
             </p>
 
-            <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
               <label style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.4rem',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
+                fontSize: '0.85rem',
                 background: modoSalida === 'Lo vienen a buscar' ? 'rgba(59, 130, 246, 0.2)' : 'var(--bg-secondary)',
                 border: `1px solid ${modoSalida === 'Lo vienen a buscar' ? 'var(--accent-primary)' : 'var(--glass-border)'}`,
-                padding: '0.75rem 1rem',
+                padding: '0.65rem 0.75rem',
                 borderRadius: '8px',
-                flex: '1 1 180px'
+                flex: '1 1 130px',
+                minWidth: 0
               }}>
                 <input 
                   type="radio" 
@@ -601,12 +602,13 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                 alignItems: 'center',
                 gap: '0.4rem',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
+                fontSize: '0.85rem',
                 background: modoSalida === 'Se va solo/a' ? 'rgba(234, 179, 8, 0.2)' : 'var(--bg-secondary)',
                 border: `1px solid ${modoSalida === 'Se va solo/a' ? '#eab308' : 'var(--glass-border)'}`,
-                padding: '0.75rem 1rem',
+                padding: '0.65rem 0.75rem',
                 borderRadius: '8px',
-                flex: '1 1 180px'
+                flex: '1 1 130px',
+                minWidth: 0
               }}>
                 <input 
                   type="radio" 

@@ -168,26 +168,26 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
       </div>
 
       {modo === 'teclado' && (
-        <div style={{ display: 'flex', gap: '0.4rem', width: '100%', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.3rem', width: '100%', alignItems: 'center' }}>
           {/* Entrada de Día */}
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <input
               ref={diaRef}
               type="tel"
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder="Día (DD)"
+              placeholder="Día"
               value={diaStr}
               onChange={handleDiaChange}
               required={required}
               style={{
                 width: '100%',
-                padding: '0.65rem 0.5rem',
+                padding: '0.65rem 0.25rem',
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--glass-border)',
                 borderRadius: '8px',
                 color: 'white',
-                fontSize: '0.95rem',
+                fontSize: '0.9rem',
                 textAlign: 'center',
                 fontWeight: 'bold'
               }}
@@ -197,25 +197,25 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
           <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>/</span>
 
           {/* Entrada de Mes */}
-          <div style={{ flex: 1.2 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <input
               ref={mesRef}
               type="tel"
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder="Mes (MM)"
+              placeholder="Mes"
               value={mesStr}
               onChange={handleMesChange}
               onKeyDown={handleMesKeyDown}
               required={required}
               style={{
                 width: '100%',
-                padding: '0.65rem 0.5rem',
+                padding: '0.65rem 0.25rem',
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--glass-border)',
                 borderRadius: '8px',
                 color: 'white',
-                fontSize: '0.95rem',
+                fontSize: '0.9rem',
                 textAlign: 'center',
                 fontWeight: 'bold'
               }}
@@ -225,25 +225,25 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
           <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>/</span>
 
           {/* Entrada de Año */}
-          <div style={{ flex: 1.5 }}>
+          <div style={{ flex: 1.3, minWidth: 0 }}>
             <input
               ref={anioRef}
               type="tel"
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder="Año (AAAA)"
+              placeholder="Año"
               value={anioStr}
               onChange={handleAnioChange}
               onKeyDown={handleAnioKeyDown}
               required={required}
               style={{
                 width: '100%',
-                padding: '0.65rem 0.5rem',
+                padding: '0.65rem 0.25rem',
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--glass-border)',
                 borderRadius: '8px',
                 color: 'white',
-                fontSize: '0.95rem',
+                fontSize: '0.9rem',
                 textAlign: 'center',
                 fontWeight: 'bold'
               }}
@@ -253,12 +253,12 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
       )}
 
       {modo === 'desplegables' && (
-        <div style={{ display: 'flex', gap: '0.4rem', width: '100%' }}>
+        <div style={{ display: 'flex', gap: '0.3rem', width: '100%' }}>
           {/* Selector de Día */}
           <select
             value={diaStr}
             onChange={(e) => handleSelectChange(e.target.value, mesStr, anioStr)}
-            style={{ flex: '1', padding: '0.65rem 0.3rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.9rem' }}
+            style={{ flex: '1', minWidth: 0, padding: '0.65rem 0.2rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.85rem' }}
             required={required}
           >
             <option value="">Día</option>
@@ -271,7 +271,7 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
           <select
             value={mesStr}
             onChange={(e) => handleSelectChange(diaStr, e.target.value, anioStr)}
-            style={{ flex: '1.4', padding: '0.65rem 0.3rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.9rem' }}
+            style={{ flex: '1.3', minWidth: 0, padding: '0.65rem 0.2rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.85rem' }}
             required={required}
           >
             <option value="">Mes</option>
@@ -284,7 +284,7 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
           <select
             value={anioStr}
             onChange={(e) => handleSelectChange(diaStr, mesStr, e.target.value)}
-            style={{ flex: '1.2', padding: '0.65rem 0.3rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.9rem' }}
+            style={{ flex: '1.1', minWidth: 0, padding: '0.65rem 0.2rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.85rem' }}
             required={required}
           >
             <option value="">Año</option>

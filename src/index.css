@@ -450,3 +450,31 @@ button.btn-primary:disabled {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ===== RESPONSIVE MOBILE FIXES FOR SMALL SCREENS (<480px) ===== */
+@media (max-width: 480px) {
+  .container {
+    padding: 0.75rem 0.4rem !important;
+  }
+
+  .glass-panel {
+    padding: 1rem 0.75rem !important;
+    border-radius: 10px !important;
+  }
+
+  input, select, button {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS mobile browsers */
+  }
+
+  h1 {
+    font-size: 1.35rem !important;
+  }
+
+  h2 {
+    font-size: 1.2rem !important;
+  }
+
+  .btn-primary {
+    padding: 0.85rem !important;
+  }
+}
