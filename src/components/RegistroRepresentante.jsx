@@ -337,7 +337,7 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
             className="btn-primary" 
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.85rem', fontSize: '1rem' }}
           >
-            <Plus size={20} /> {esPublico ? 'Registrar otro niño/a' : 'Registrar Nuevo Representante / Niño'}
+            <Plus size={20} /> {esPublico ? 'Registrar otro niño/a' : 'Nuevo Registro'}
           </button>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
             {esPublico 
