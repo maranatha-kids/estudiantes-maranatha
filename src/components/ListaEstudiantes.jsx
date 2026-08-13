@@ -76,10 +76,21 @@ export default function ListaEstudiantes({ refreshTrigger }) {
     return match ? match[1] : null;
   };
 
-  // Limpiar cadena del representante para quitar la duplicación de Ticket
+  const extraerModoSalida = (repInfo) => {
+    if (!repInfo) return 'Lo vienen a buscar';
+    if (repInfo.toLowerCase().includes('se va solo')) return 'Se va solo/a';
+    return 'Lo vienen a buscar';
+  };
+
+  // Limpiar cadena del representante para quitar la duplicación de Ticket y Salida
   const limpiarNombreRepresentante = (repInfo) => {
     if (!repInfo) return '';
-    return repInfo.replace(/\s*\|\s*Ticket:\s*#?\w+/i, '').replace(/\s*Ticket:\s*#?\w+/i, '').trim();
+    return repInfo
+      .replace(/\s*\|\s*Ticket:\s*#?\w+/i, '')
+      .replace(/\s*Ticket:\s*#?\w+/i, '')
+      .replace(/\s*\|\s*Salida:\s*[^)]+/i, '')
+      .replace(/\s*Salida:\s*[^)]+/i, '')
+      .trim();
   };
 
   // VISTA NIVEL 2: Detalle de un salón
@@ -131,16 +142,35 @@ export default function ListaEstudiantes({ refreshTrigger }) {
           ) : (
             lista.map(e => {
               const ticketNum = extraerTicket(e.nombre_representante);
+              const modoSalidaCard = extraerModoSalida(e.nombre_representante);
               const nombreRepLimpio = limpiarNombreRepresentante(e.nombre_representante);
               return (
                 <div key={e.id} className="estudiante-item" style={{ borderLeft: `4px solid ${e.genero === 'Niña' ? '#ec4899' : e.genero === 'Niño' ? 'var(--accent-primary)' : 'var(--text-secondary)'}`, padding: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1, paddingRight: '0.5rem' }}>
-                      {ticketNum && (
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid var(--accent-primary)', color: 'white', fontSize: '0.85rem', fontWeight: 'bold', padding: '0.2rem 0.5rem', borderRadius: '6px', marginBottom: '0.5rem' }}>
-                          <Ticket size={14} color="var(--accent-primary)" /> Ticket #{ticketNum}
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                        {ticketNum && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid var(--accent-primary)', color: 'white', fontSize: '0.85rem', fontWeight: 'bold', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
+                            <Ticket size={14} color="var(--accent-primary)" /> Ticket #{ticketNum}
+                          </div>
+                        )}
+                        {modoSalidaCard && (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: modoSalidaCard === 'Se va solo/a' ? 'rgba(234, 179, 8, 0.18)' : 'rgba(59, 130, 246, 0.15)',
+                            border: `1px solid ${modoSalidaCard === 'Se va solo/a' ? '#eab308' : 'var(--accent-primary)'}`,
+                            color: 'white',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold',
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '6px'
+                          }}>
+                            {modoSalidaCard === 'Se va solo/a' ? '🚶 Se va solo/a' : '🚗 Lo vienen a buscar'}
+                          </div>
+                        )}
+                      </div>
                       
                       <div className="estudiante-nombre" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{e.nombre} {e.apellido}</div>
                       <div className="estudiante-edad" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{e.edad} años ({e.genero || 'No especificado'})</div>

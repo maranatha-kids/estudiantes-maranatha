@@ -139,6 +139,12 @@ export default function HistorialDomingos() {
     return match ? match[1] : null;
   };
 
+  const extraerModoSalida = (repInfo) => {
+    if (!repInfo) return 'Lo vienen a buscar';
+    if (repInfo.toLowerCase().includes('se va solo')) return 'Se va solo/a';
+    return 'Lo vienen a buscar';
+  };
+
   const abrirCarpeta = (registro) => {
     setCarpetaSeleccionada(registro);
     setBusquedaHistorial('');
@@ -227,18 +233,34 @@ export default function HistorialDomingos() {
           ) : (
             listaFiltrada.map(e => {
               const ticketNum = extraerTicket(e.nombre_representante);
+              const modoSalidaCard = extraerModoSalida(e.nombre_representante);
               return (
                 <div key={e.id || e.nombre + e.apellido} className="estudiante-item" style={{ borderLeft: `4px solid ${e.genero === 'Niña' ? '#ec4899' : e.genero === 'Niño' ? 'var(--accent-primary)' : 'var(--text-secondary)'}`, padding: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1 }}>
-                      <div className="estudiante-nombre" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{e.nombre} {e.apellido}</div>
-                      {e.edad && <div className="estudiante-edad" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{e.edad} años ({e.genero || 'No especificado'})</div>}
-                      
-                      {ticketNum && (
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(59, 130, 246, 0.15)', border: '1px solid var(--accent-primary)', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '0.4rem' }}>
-                          <Ticket size={14} color="var(--accent-primary)" /> Ticket #{ticketNum}
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+                        {ticketNum && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(59, 130, 246, 0.15)', border: '1px solid var(--accent-primary)', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                            <Ticket size={14} color="var(--accent-primary)" /> Ticket #{ticketNum}
+                          </div>
+                        )}
+                        {modoSalidaCard && (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: modoSalidaCard === 'Se va solo/a' ? 'rgba(234, 179, 8, 0.18)' : 'rgba(59, 130, 246, 0.15)',
+                            border: `1px solid ${modoSalidaCard === 'Se va solo/a' ? '#eab308' : 'var(--accent-primary)'}`,
+                            color: 'white',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold',
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '6px'
+                          }}>
+                            {modoSalidaCard === 'Se va solo/a' ? '🚶 Se va solo/a' : '🚗 Lo vienen a buscar'}
+                          </div>
+                        )}
+                      </div>
 
                       {e.nombre_representante && (
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.4rem' }}>

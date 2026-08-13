@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { X, Save, User, ShieldCheck, Phone, Trash2 } from 'lucide-react';
+import { X, Save, User, ShieldCheck, Phone, Trash2, LogOut } from 'lucide-react';
 import CampoFechaNacimiento from './CampoFechaNacimiento';
 
 function calcularEdad(fechaString) {
@@ -25,7 +25,20 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
   const [apellido, setApellido] = useState(estudiante.apellido || '');
   const [genero, setGenero] = useState(estudiante.genero || 'Niño');
   const [fechaNacimiento, setFechaNacimiento] = useState(estudiante.fecha_nacimiento || '');
-  const limpiarRep = (info) => (info || '').replace(/\s*\|\s*Ticket:\s*#?\w+/i, '').replace(/\s*Ticket:\s*#?\w+/i, '').trim();
+
+  const parseModoSalida = (repInfo) => {
+    if (!repInfo) return 'Lo vienen a buscar';
+    if (repInfo.toLowerCase().includes('se va solo')) return 'Se va solo/a';
+    return 'Lo vienen a buscar';
+  };
+  const [modoSalida, setModoSalida] = useState(parseModoSalida(estudiante.nombre_representante));
+
+  const limpiarRep = (info) => (info || '')
+    .replace(/\s*\|\s*Ticket:\s*#?\w+/i, '')
+    .replace(/\s*Ticket:\s*#?\w+/i, '')
+    .replace(/\s*\|\s*Salida:\s*[^)]+/i, '')
+    .replace(/\s*Salida:\s*[^)]+/i, '')
+    .trim();
   const [nombreRep, setNombreRep] = useState(limpiarRep(estudiante.nombre_representante));
   const parseTelefono = (tel) => {
     const raw = (tel || '').replace(/\D/g, '');
@@ -144,7 +157,11 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
       const ticketOriginal = extraerTicketOriginal(estudiante.nombre_representante);
       let nombreRepFinal = nombreRep.trim();
       if (ticketOriginal && !nombreRepFinal.toLowerCase().includes('ticket:')) {
-        nombreRepFinal = `${nombreRepFinal} (Ticket: #${ticketOriginal})`;
+        nombreRepFinal = `${nombreRepFinal} (Ticket: #${ticketOriginal} | Salida: ${modoSalida})`;
+      } else if (!nombreRepFinal.toLowerCase().includes('salida:')) {
+        nombreRepFinal = `${nombreRepFinal} (Salida: ${modoSalida})`;
+      } else {
+        nombreRepFinal = nombreRepFinal.replace(/Salida:\s*[^)]+/i, `Salida: ${modoSalida}`);
       }
 
       const { error } = await supabase
@@ -322,6 +339,61 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
                   style={{ flex: 1, width: '100%', padding: '0.65rem 0.8rem', fontSize: '0.95rem', letterSpacing: '0.5px' }}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Modo de Salida / Retiro */}
+          <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--glass-border)', padding: '1rem', borderRadius: '12px', marginBottom: '1.2rem' }}>
+            <h3 style={{ fontSize: '1rem', color: 'var(--accent-primary)', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <LogOut size={18} /> Modo de Salida / Retiro <span style={{ color: '#ef4444' }}>*</span>
+            </h3>
+
+            <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                background: modoSalida === 'Lo vienen a buscar' ? 'rgba(59, 130, 246, 0.2)' : 'var(--bg-secondary)',
+                border: `1px solid ${modoSalida === 'Lo vienen a buscar' ? 'var(--accent-primary)' : 'var(--glass-border)'}`,
+                padding: '0.65rem 0.9rem',
+                borderRadius: '8px',
+                flex: 1
+              }}>
+                <input 
+                  type="radio" 
+                  name="modoSalidaEdit" 
+                  value="Lo vienen a buscar" 
+                  checked={modoSalida === 'Lo vienen a buscar'} 
+                  onChange={e => setModoSalida(e.target.value)} 
+                  required 
+                />
+                <span>🚗 <strong>Lo vienen a buscar</strong></span>
+              </label>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                background: modoSalida === 'Se va solo/a' ? 'rgba(234, 179, 8, 0.2)' : 'var(--bg-secondary)',
+                border: `1px solid ${modoSalida === 'Se va solo/a' ? '#eab308' : 'var(--glass-border)'}`,
+                padding: '0.65rem 0.9rem',
+                borderRadius: '8px',
+                flex: 1
+              }}>
+                <input 
+                  type="radio" 
+                  name="modoSalidaEdit" 
+                  value="Se va solo/a" 
+                  checked={modoSalida === 'Se va solo/a'} 
+                  onChange={e => setModoSalida(e.target.value)} 
+                  required 
+                />
+                <span>🚶 <strong>Se va solo/a</strong></span>
+              </label>
             </div>
           </div>
 

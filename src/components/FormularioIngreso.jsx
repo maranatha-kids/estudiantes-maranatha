@@ -28,6 +28,7 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
   const [nombreRep, setNombreRep] = useState('');
   const [apellidoRep, setApellidoRep] = useState('');
   const [telefonoRep, setTelefonoRep] = useState('');
+  const [modoSalida, setModoSalida] = useState('Lo vienen a buscar');
   
   const [edad, setEdad] = useState(null);
   const [salon, setSalon] = useState('');
@@ -139,6 +140,13 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
       const estAnterior = todosLosEstudiantes.find(e => e.id === estudianteSeleccionadoId);
       salonAnterior = estAnterior ? estAnterior.salon_actual : null;
 
+      let repBase = requiereRepresentante ? nombreRep.trim() : (estAnterior?.nombre_representante || '');
+      if (repBase && !repBase.toLowerCase().includes('salida:')) {
+        repBase = `${repBase} (Salida: ${modoSalida})`;
+      } else if (repBase && repBase.toLowerCase().includes('salida:')) {
+        repBase = repBase.replace(/Salida:\s*[^)]+/i, `Salida: ${modoSalida}`);
+      }
+
       // Estudiante ya existe, solo lo activamos para este domingo y actualizamos sus datos si cambiaron
       const dataUpdate = {
         nombre,
@@ -146,7 +154,7 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
         fecha_nacimiento: fechaNacimiento,
         genero,
         salon_actual: salon,
-        nombre_representante: requiereRepresentante ? nombreRep : (estAnterior?.nombre_representante || null),
+        nombre_representante: repBase || null,
         apellido_representante: requiereRepresentante ? apellidoRep : (estAnterior?.apellido_representante || null),
         telefono_representante: requiereRepresentante ? telefonoRep : (estAnterior?.telefono_representante || null),
         activo_este_domingo: true
@@ -159,6 +167,11 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
       
       errorSub = error;
     } else {
+      let repBase = requiereRepresentante ? nombreRep.trim() : '';
+      if (repBase && !repBase.toLowerCase().includes('salida:')) {
+        repBase = `${repBase} (Salida: ${modoSalida})`;
+      }
+
       // Es un nuevo estudiante
       const dataInsert = {
         nombre,
@@ -166,7 +179,7 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
         fecha_nacimiento: fechaNacimiento,
         genero,
         salon_actual: salon,
-        nombre_representante: requiereRepresentante ? nombreRep : null,
+        nombre_representante: repBase || null,
         apellido_representante: requiereRepresentante ? apellidoRep : null,
         telefono_representante: requiereRepresentante ? telefonoRep : null,
         activo_este_domingo: true
@@ -283,6 +296,59 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
             minYear={2010} 
             required={true} 
           />
+        </div>
+
+        <div className="form-group">
+          <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'white', marginBottom: '0.4rem', display: 'block' }}>
+            ¿Cómo se retira el niño/a al finalizar la actividad? <span style={{ color: '#ef4444' }}>*</span>
+          </label>
+          <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              background: modoSalida === 'Lo vienen a buscar' ? 'rgba(59, 130, 246, 0.2)' : 'var(--bg-secondary)',
+              border: `1px solid ${modoSalida === 'Lo vienen a buscar' ? 'var(--accent-primary)' : 'var(--glass-border)'}`,
+              padding: '0.65rem 0.9rem',
+              borderRadius: '8px',
+              flex: 1
+            }}>
+              <input
+                type="radio"
+                name="modoSalidaAdmin"
+                value="Lo vienen a buscar"
+                checked={modoSalida === 'Lo vienen a buscar'}
+                onChange={e => setModoSalida(e.target.value)}
+                required
+              />
+              <span>🚗 <strong>Lo vienen a buscar</strong></span>
+            </label>
+
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              background: modoSalida === 'Se va solo/a' ? 'rgba(234, 179, 8, 0.2)' : 'var(--bg-secondary)',
+              border: `1px solid ${modoSalida === 'Se va solo/a' ? '#eab308' : 'var(--glass-border)'}`,
+              padding: '0.65rem 0.9rem',
+              borderRadius: '8px',
+              flex: 1
+            }}>
+              <input
+                type="radio"
+                name="modoSalidaAdmin"
+                value="Se va solo/a"
+                checked={modoSalida === 'Se va solo/a'}
+                onChange={e => setModoSalida(e.target.value)}
+                required
+              />
+              <span>🚶 <strong>Se va solo/a</strong></span>
+            </label>
+          </div>
         </div>
 
         {edad !== null && (

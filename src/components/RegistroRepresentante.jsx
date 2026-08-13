@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Sparkles, User, ShieldCheck, Heart, Plus, AlertCircle, ChevronLeft } from 'lucide-react';
+import { Sparkles, User, ShieldCheck, Heart, Plus, AlertCircle, ChevronLeft, LogOut } from 'lucide-react';
 import CampoFechaNacimiento from './CampoFechaNacimiento';
 
 function calcularEdad(fechaString) {
@@ -36,6 +36,7 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
   const [apellidoEst, setApellidoEst] = useState('');
   const [generoEst, setGeneroEst] = useState('');
   const [fechaNacimientoEst, setFechaNacimientoEst] = useState('');
+  const [modoSalida, setModoSalida] = useState('Lo vienen a buscar');
 
   // Estado del proceso
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,8 +138,8 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
       let numTicketCalculado = ticketSesion || await generarTicket();
       const salonAsignado = 'Usos Múltiples';
 
-      // Formatear la cadena del representante para incluir Parentesco y Ticket
-      let infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Ticket: #${numTicketCalculado})`;
+      // Formatear la cadena del representante para incluir Parentesco, Ticket y Salida
+      let infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Ticket: #${numTicketCalculado} | Salida: ${modoSalida})`;
 
       // Buscar si el niño ya existía previamente por Nombre y Apellido
       const { data: existencias } = await supabase
@@ -214,7 +215,7 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
             }
           });
           numTicketCalculado = String(maxColision + 1).padStart(3, '0');
-          infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Ticket: #${numTicketCalculado})`;
+          infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Ticket: #${numTicketCalculado} | Salida: ${modoSalida})`;
 
           // Actualizar inmediatamente en Supabase con el ticket corregido único
           await supabase
@@ -236,7 +237,8 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
         parentesco: parentescoFinal,
         telefono: telefonoRep.trim(),
         salon: salonAsignado,
-        edad: edad
+        edad: edad,
+        modoSalida: modoSalida
       });
 
     } catch (err) {
@@ -286,6 +288,7 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
             <p style={{ margin: '0.3rem 0' }}><strong>Representante:</strong> {ticketGuardado.representante}</p>
             <p style={{ margin: '0.3rem 0' }}><strong>Parentesco:</strong> {ticketGuardado.parentesco}</p>
             <p style={{ margin: '0.3rem 0' }}><strong>Teléfono:</strong> {ticketGuardado.telefono}</p>
+            <p style={{ margin: '0.3rem 0' }}><strong>Modo de Salida:</strong> {ticketGuardado.modoSalida === 'Se va solo/a' ? '🚶 Se va solo/a' : '🚗 Lo vienen a buscar'}</p>
             <p style={{ margin: '0.3rem 0' }}><strong>Estado:</strong> {ticketGuardado.salon === 'Graduado' ? '🎓 Graduado' : ticketGuardado.salon}</p>
           </div>
 
@@ -508,6 +511,64 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
             )}
           </div>
 
+          {/* SECCIÓN 3: MODO DE SALIDA / RETIRO */}
+          <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--glass-border)', padding: '1rem', borderRadius: '12px', marginBottom: '1.2rem' }}>
+            <h3 style={{ fontSize: '1rem', color: 'var(--accent-primary)', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <LogOut size={18} /> Modo de Salida / Retiro <span style={{ color: '#ef4444' }}>*</span>
+            </h3>
+            <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginBottom: '0.8rem' }}>
+              Indique cómo se retirará el niño/a al finalizar la actividad de Maranatha Kids:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                background: modoSalida === 'Lo vienen a buscar' ? 'rgba(59, 130, 246, 0.2)' : 'var(--bg-secondary)',
+                border: `1px solid ${modoSalida === 'Lo vienen a buscar' ? 'var(--accent-primary)' : 'var(--glass-border)'}`,
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                flex: '1 1 180px'
+              }}>
+                <input 
+                  type="radio" 
+                  name="modoSalida" 
+                  value="Lo vienen a buscar" 
+                  checked={modoSalida === 'Lo vienen a buscar'} 
+                  onChange={e => setModoSalida(e.target.value)} 
+                  required 
+                />
+                <span>🚗 <strong>Lo vienen a buscar</strong></span>
+              </label>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                background: modoSalida === 'Se va solo/a' ? 'rgba(234, 179, 8, 0.2)' : 'var(--bg-secondary)',
+                border: `1px solid ${modoSalida === 'Se va solo/a' ? '#eab308' : 'var(--glass-border)'}`,
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                flex: '1 1 180px'
+              }}>
+                <input 
+                  type="radio" 
+                  name="modoSalida" 
+                  value="Se va solo/a" 
+                  checked={modoSalida === 'Se va solo/a'} 
+                  onChange={e => setModoSalida(e.target.value)} 
+                  required 
+                />
+                <span>🚶 <strong>Se va solo/a</strong></span>
+              </label>
+            </div>
+          </div>
+
           <button 
             type="submit" 
             className="btn-primary" 
@@ -521,6 +582,7 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
               !apellidoEst.trim() || 
               !generoEst || 
               !fechaNacimientoEst || 
+              !modoSalida ||
               edad < 8 || 
               edad > 13
             }
