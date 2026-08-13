@@ -44,38 +44,33 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
 
   const [ticketSesion, setTicketSesion] = useState(null);
 
-  // Generar número de ticket único e incremental que NUNCA se repite
+  // Generar número de ticket único para el día activo (se reinicia al cerrar el día)
   const generarTicket = async () => {
     try {
-      const { data: ests } = await supabase
+      // Consultar únicamente los estudiantes activos el día de HOY
+      const { data: activos, error } = await supabase
         .from('estudiantes')
-        .select('nombre_representante');
+        .select('nombre_representante')
+        .eq('activo_este_domingo', true);
 
-      const { data: hist } = await supabase
-        .from('historial_domingos')
-        .select('estudiantes');
+      if (error) throw error;
 
-      let maxTicket = 0;
-
-      const procesarCadena = (str) => {
-        if (!str) return;
-        const match = str.match(/Ticket:\s*#?(\d+)/i);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (num > maxTicket) maxTicket = num;
+      let maxTicketHoy = 0;
+      (activos || []).forEach(e => {
+        if (e.nombre_representante) {
+          const match = e.nombre_representante.match(/Ticket:\s*#?(\d+)/i);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxTicketHoy) maxTicketHoy = num;
+          }
         }
-      };
-
-      (ests || []).forEach(e => procesarCadena(e.nombre_representante));
-      (hist || []).forEach(h => {
-        (h.estudiantes || []).forEach(e => procesarCadena(e.nombre_representante));
       });
 
-      const siguiente = maxTicket + 1;
+      const siguiente = maxTicketHoy + 1;
       return String(siguiente).padStart(3, '0');
     } catch (err) {
-      console.error('Error al generar ticket único:', err);
-      return '067';
+      console.error('Error al generar ticket del día:', err);
+      return '001';
     }
   };
 
@@ -139,14 +134,11 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
 
     try {
       const parentescoFinal = parentescoRep === 'Otro' ? otroParentesco : parentescoRep;
-      const numTicket = ticketSesion || await generarTicket();
-      if (!ticketSesion) {
-        setTicketSesion(numTicket);
-      }
+      let numTicketCalculado = ticketSesion || await generarTicket();
       const salonAsignado = 'Usos Múltiples';
 
       // Formatear la cadena del representante para incluir Parentesco y Ticket
-      const infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Ticket: #${numTicket})`;
+      let infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Ticket: #${numTicketCalculado})`;
 
       // Buscar si el niño ya existía previamente por Nombre y Apellido
       const { data: existencias } = await supabase
@@ -156,9 +148,10 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
         .ilike('apellido', apellidoEst.trim());
 
       let estudianteExistente = existencias && existencias.length > 0 ? existencias[0] : null;
+      let targetId = null;
 
       if (estudianteExistente) {
-        // Actualizar datos del estudiante y activarlo hoy
+        targetId = estudianteExistente.id;
         const { error: errUpdate } = await supabase
           .from('estudiantes')
           .update({
@@ -175,7 +168,7 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
         if (errUpdate) throw errUpdate;
       } else {
         // Crear nuevo registro
-        const { error: errInsert } = await supabase
+        const { data: inserted, error: errInsert } = await supabase
           .from('estudiantes')
           .insert([{
             nombre: nombreEst.trim(),
@@ -187,14 +180,57 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
             apellido_representante: apellidoRep.trim(),
             telefono_representante: telefonoRep.trim(),
             activo_este_domingo: true
-          }]);
+          }])
+          .select();
 
         if (errInsert) throw errInsert;
+        if (inserted && inserted.length > 0) {
+          targetId = inserted[0].id;
+        }
+      }
+
+      // --- VERIFICACIÓN Y PROTECCIÓN ANTI-COLISIÓN SIMULTÁNEA ---
+      if (!ticketSesion && targetId) {
+        const { data: todosActivosHoy } = await supabase
+          .from('estudiantes')
+          .select('id, nombre_representante, telefono_representante')
+          .eq('activo_este_domingo', true);
+
+        // Buscar si otro representante distinto tiene asignado el mismo ticket
+        const duplicadosEncontrados = (todosActivosHoy || []).filter(e => {
+          if (e.id === targetId || e.telefono_representante === telefonoRep.trim()) return false;
+          const match = (e.nombre_representante || '').match(/Ticket:\s*#?(\d+)/i);
+          return match && match[1] === numTicketCalculado;
+        });
+
+        if (duplicadosEncontrados.length > 0) {
+          // Recalcular en tiempo real el ticket más alto del día para resolver colisión
+          let maxColision = parseInt(numTicketCalculado, 10);
+          (todosActivosHoy || []).forEach(e => {
+            const match = (e.nombre_representante || '').match(/Ticket:\s*#?(\d+)/i);
+            if (match) {
+              const n = parseInt(match[1], 10);
+              if (n > maxColision) maxColision = n;
+            }
+          });
+          numTicketCalculado = String(maxColision + 1).padStart(3, '0');
+          infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Ticket: #${numTicketCalculado})`;
+
+          // Actualizar inmediatamente en Supabase con el ticket corregido único
+          await supabase
+            .from('estudiantes')
+            .update({ nombre_representante: infoRepresentanteFormateada })
+            .eq('id', targetId);
+        }
+
+        setTicketSesion(numTicketCalculado);
+      } else if (!ticketSesion) {
+        setTicketSesion(numTicketCalculado);
       }
 
       // Guardar ticket para mostrar en pantalla al representante
       setTicketGuardado({
-        ticket: numTicket,
+        ticket: numTicketCalculado,
         nino: `${nombreEst.trim()} ${apellidoEst.trim()}`,
         representante: `${nombreRep.trim()} ${apellidoRep.trim()}`,
         parentesco: parentescoFinal,
