@@ -116,7 +116,7 @@ export default function ListaEstudiantes({ refreshTrigger }) {
             <Search size={18} color="var(--text-secondary)" style={{ marginRight: '8px' }} />
             <input 
               type="text" 
-              placeholder="Buscar por Ticket #, Nombre, CI..." 
+              placeholder="Buscar por Ticket # (Ej: #001), Nombre o Representante..." 
               value={busqueda} 
               onChange={e => setBusqueda(e.target.value)}
               style={{ background: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none' }}
@@ -246,7 +246,7 @@ export default function ListaEstudiantes({ refreshTrigger }) {
         <Search size={20} color="var(--text-secondary)" style={{ marginRight: '10px' }} />
         <input 
           type="text" 
-          placeholder="Buscar por Ticket # (Ej: #1042), Nombre, Cédula o Representante..." 
+          placeholder="Buscar por Ticket # (Ej: #001), Nombre o Representante..." 
           value={busqueda} 
           onChange={e => setBusqueda(e.target.value)}
           style={{ background: 'transparent', border: 'none', color: 'white', width: '100%', fontSize: '1rem', outline: 'none' }}
