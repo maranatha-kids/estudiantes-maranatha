@@ -1,32 +1,45 @@
-import React, { useState } from 'react';
-import { Calendar, Edit3 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
 
 const MESES = [
-  { val: '01', nombre: 'Enero' },
-  { val: '02', nombre: 'Febrero' },
-  { val: '03', nombre: 'Marzo' },
-  { val: '04', nombre: 'Abril' },
-  { val: '05', nombre: 'Mayo' },
-  { val: '06', nombre: 'Junio' },
-  { val: '07', nombre: 'Julio' },
-  { val: '08', nombre: 'Agosto' },
-  { val: '09', nombre: 'Septiembre' },
-  { val: '10', nombre: 'Octubre' },
-  { val: '11', nombre: 'Noviembre' },
-  { val: '12', nombre: 'Diciembre' }
+  { val: '01', nombre: '01 - Enero' },
+  { val: '02', nombre: '02 - Febrero' },
+  { val: '03', nombre: '03 - Marzo' },
+  { val: '04', nombre: '04 - Abril' },
+  { val: '05', nombre: '05 - Mayo' },
+  { val: '06', nombre: '06 - Junio' },
+  { val: '07', nombre: '07 - Julio' },
+  { val: '08', nombre: '08 - Agosto' },
+  { val: '09', nombre: '09 - Septiembre' },
+  { val: '10', nombre: '10 - Octubre' },
+  { val: '11', nombre: '11 - Noviembre' },
+  { val: '12', nombre: '12 - Diciembre' }
 ];
 
 export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, required = true }) {
-  const [modo, setModo] = useState('desplegables'); // 'desplegables' (Día/Mes/Año) o 'calendario'
+  // Modos disponibles: 'teclado' (escribir DD/MM/AAAA con teclado numérico), 'desplegables', 'calendario'
+  const [modo, setModo] = useState('teclado');
+
+  const diaRef = useRef(null);
+  const mesRef = useRef(null);
+  const anioRef = useRef(null);
+
   const hoyObj = new Date();
   const hoyAnio = hoyObj.getFullYear();
   const fechaMax = `${hoyAnio}-${String(hoyObj.getMonth() + 1).padStart(2, '0')}-${String(hoyObj.getDate()).padStart(2, '0')}`;
 
   // Desglosar valor YYYY-MM-DD
   const partes = (value || '').split('-');
-  const anioActual = partes[0] || '';
-  const mesActual = partes[1] || '';
-  const diaActual = partes[2] || '';
+  const [anioStr, setAnioStr] = useState(partes[0] || '');
+  const [mesStr, setMesStr] = useState(partes[1] || '');
+  const [diaStr, setDiaStr] = useState(partes[2] || '');
+
+  // Sincronizar estado local si `value` cambia externamente
+  useEffect(() => {
+    const p = (value || '').split('-');
+    setAnioStr(p[0] || '');
+    setMesStr(p[1] || '');
+    setDiaStr(p[2] || '');
+  }, [value]);
 
   // Lista de años desde minYear (2010) hasta hoyAnio
   const aniosDisponibles = [];
@@ -40,19 +53,52 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
     diasDisponibles.push(String(d).padStart(2, '0'));
   }
 
-  const handleCambioPartes = (nDia, nMes, nAnio) => {
+  const actualizarFechaGlobal = (d, m, a) => {
+    if (d && m && a && a.length === 4) {
+      const dPadded = String(d).padStart(2, '0');
+      const mPadded = String(m).padStart(2, '0');
+      onChange(`${a}-${mPadded}-${dPadded}`);
+    } else {
+      onChange('');
+    }
+  };
+
+  const handleDiaChange = (e) => {
+    let val = e.target.value.replace(/\D/g, '').slice(0, 2);
+    if (parseInt(val, 10) > 31) val = '31';
+    setDiaStr(val);
+    actualizarFechaGlobal(val, mesStr, anioStr);
+
+    if (val.length === 2 && mesRef.current) {
+      mesRef.current.focus();
+    }
+  };
+
+  const handleMesChange = (e) => {
+    let val = e.target.value.replace(/\D/g, '').slice(0, 2);
+    if (parseInt(val, 10) > 12) val = '12';
+    setMesStr(val);
+    actualizarFechaGlobal(diaStr, val, anioStr);
+
+    if (val.length === 2 && anioRef.current) {
+      anioRef.current.focus();
+    }
+  };
+
+  const handleAnioChange = (e) => {
+    let val = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setAnioStr(val);
+    actualizarFechaGlobal(diaStr, mesStr, val);
+  };
+
+  const handleSelectChange = (nDia, nMes, nAnio) => {
+    setDiaStr(nDia);
+    setMesStr(nMes);
+    setAnioStr(nAnio);
     if (nDia && nMes && nAnio) {
       onChange(`${nAnio}-${nMes}-${nDia}`);
     } else {
-      // Si está incompleto, concatenar con los valores elegidos o dejar vacío
-      const y = nAnio || String(hoyAnio);
-      const m = nMes || '01';
-      const d = nDia || '01';
-      if (nDia || nMes || nAnio) {
-        onChange(`${y}-${m}-${d}`);
-      } else {
-        onChange('');
-      }
+      onChange('');
     }
   };
 
@@ -62,41 +108,153 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
         <label style={{ fontSize: '0.85rem', margin: 0, color: 'var(--text-secondary)', fontWeight: 500 }}>
           Fecha de Nacimiento
         </label>
-        <button
-          type="button"
-          onClick={() => setModo(modo === 'desplegables' ? 'calendario' : 'desplegables')}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--accent-primary)',
-            fontSize: '0.78rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            fontWeight: 600,
-            padding: '2px 6px',
-            borderRadius: '4px'
-          }}
-        >
-          {modo === 'desplegables' ? (
-            <>
-              <Calendar size={13} /> Usar Calendario
-            </>
-          ) : (
-            <>
-              <Edit3 size={13} /> Seleccionar Día / Mes / Año
-            </>
-          )}
-        </button>
+        
+        <div style={{ display: 'flex', gap: '0.2rem' }}>
+          <button
+            type="button"
+            onClick={() => setModo('teclado')}
+            style={{
+              background: modo === 'teclado' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
+              border: modo === 'teclado' ? '1px solid var(--accent-primary)' : '1px solid transparent',
+              color: modo === 'teclado' ? 'white' : 'var(--text-secondary)',
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontWeight: modo === 'teclado' ? 'bold' : 'normal'
+            }}
+            title="Escribir números directamente"
+          >
+            ⌨️ Teclado
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setModo('desplegables')}
+            style={{
+              background: modo === 'desplegables' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
+              border: modo === 'desplegables' ? '1px solid var(--accent-primary)' : '1px solid transparent',
+              color: modo === 'desplegables' ? 'white' : 'var(--text-secondary)',
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontWeight: modo === 'desplegables' ? 'bold' : 'normal'
+            }}
+            title="Seleccionar de lista desplegable"
+          >
+            📋 Lista
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setModo('calendario')}
+            style={{
+              background: modo === 'calendario' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
+              border: modo === 'calendario' ? '1px solid var(--accent-primary)' : '1px solid transparent',
+              color: modo === 'calendario' ? 'white' : 'var(--text-secondary)',
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontWeight: modo === 'calendario' ? 'bold' : 'normal'
+            }}
+            title="Usar calendario del navegador"
+          >
+            📅 Calendario
+          </button>
+        </div>
       </div>
 
-      {modo === 'desplegables' ? (
+      {modo === 'teclado' && (
+        <div style={{ display: 'flex', gap: '0.4rem', width: '100%', alignItems: 'center' }}>
+          {/* Entrada de Día */}
+          <div style={{ flex: 1 }}>
+            <input
+              ref={diaRef}
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="Día (DD)"
+              value={diaStr}
+              onChange={handleDiaChange}
+              required={required}
+              style={{
+                width: '100%',
+                padding: '0.65rem 0.5rem',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                color: 'white',
+                fontSize: '0.95rem',
+                textAlign: 'center',
+                fontWeight: 'bold'
+              }}
+            />
+          </div>
+
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>/</span>
+
+          {/* Entrada de Mes */}
+          <div style={{ flex: 1.2 }}>
+            <input
+              ref={mesRef}
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="Mes (MM)"
+              value={mesStr}
+              onChange={handleMesChange}
+              required={required}
+              style={{
+                width: '100%',
+                padding: '0.65rem 0.5rem',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                color: 'white',
+                fontSize: '0.95rem',
+                textAlign: 'center',
+                fontWeight: 'bold'
+              }}
+            />
+          </div>
+
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>/</span>
+
+          {/* Entrada de Año */}
+          <div style={{ flex: 1.5 }}>
+            <input
+              ref={anioRef}
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="Año (AAAA)"
+              value={anioStr}
+              onChange={handleAnioChange}
+              required={required}
+              style={{
+                width: '100%',
+                padding: '0.65rem 0.5rem',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                color: 'white',
+                fontSize: '0.95rem',
+                textAlign: 'center',
+                fontWeight: 'bold'
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {modo === 'desplegables' && (
         <div style={{ display: 'flex', gap: '0.4rem', width: '100%' }}>
           {/* Selector de Día */}
           <select
-            value={diaActual}
-            onChange={(e) => handleCambioPartes(e.target.value, mesActual, anioActual)}
+            value={diaStr}
+            onChange={(e) => handleSelectChange(e.target.value, mesStr, anioStr)}
             style={{ flex: '1', padding: '0.65rem 0.3rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.9rem' }}
             required={required}
           >
@@ -108,8 +266,8 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
 
           {/* Selector de Mes */}
           <select
-            value={mesActual}
-            onChange={(e) => handleCambioPartes(diaActual, e.target.value, anioActual)}
+            value={mesStr}
+            onChange={(e) => handleSelectChange(diaStr, e.target.value, anioStr)}
             style={{ flex: '1.4', padding: '0.65rem 0.3rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.9rem' }}
             required={required}
           >
@@ -121,8 +279,8 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
 
           {/* Selector de Año */}
           <select
-            value={anioActual}
-            onChange={(e) => handleCambioPartes(diaActual, mesActual, e.target.value)}
+            value={anioStr}
+            onChange={(e) => handleSelectChange(diaStr, mesStr, e.target.value)}
             style={{ flex: '1.2', padding: '0.65rem 0.3rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', fontSize: '0.9rem' }}
             required={required}
           >
@@ -132,7 +290,9 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
             ))}
           </select>
         </div>
-      ) : (
+      )}
+
+      {modo === 'calendario' && (
         <input
           type="date"
           required={required}
