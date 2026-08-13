@@ -20,7 +20,7 @@ function calcularEdad(fechaString) {
   return edad;
 }
 
-export default function RegistroRepresentante({ onVolverAlPanel }) {
+export default function RegistroRepresentante({ onVolverAlPanel, esPublico = false }) {
   // Datos del representante
   const [nombreRep, setNombreRep] = useState('');
   const [apellidoRep, setApellidoRep] = useState('');
@@ -283,6 +283,18 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
     setApellidoEst('');
     setGeneroEst('');
     setFechaNacimientoEst('');
+    setModoSalida('Lo vienen a buscar');
+
+    // Si es el formulario utilizado por los servidores (esPublico === false):
+    // Limpiar absolutamente todos los campos del representante a blanco para el nuevo representante
+    if (!esPublico) {
+      setNombreRep('');
+      setApellidoRep('');
+      setCodigoTelefono('0414');
+      setNumeroTelefono('');
+      setParentescoRep('Padre');
+      setOtroParentesco('');
+    }
   };
 
   // VISTA TICKET DE CONFIRMACIÓN (SOLO PARA REPRESENTANTE)
@@ -325,10 +337,13 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
             className="btn-primary" 
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.85rem', fontSize: '1rem' }}
           >
-            <Plus size={20} /> Registrar otro niño/a
+            <Plus size={20} /> {esPublico ? 'Registrar otro niño/a' : 'Registrar Nuevo Representante / Niño'}
           </button>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-            * Se mantendrán tus datos de representante para no escribirlos de nuevo.
+            {esPublico 
+              ? '* Se mantendrán tus datos de representante para registrar a tus otros hijos de forma rápida.' 
+              : '* Se limpiarán todos los campos para registrar un nuevo representante desde cero.'
+            }
           </p>
         </div>
       </div>

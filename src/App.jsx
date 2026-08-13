@@ -124,7 +124,7 @@ function App() {
   if (vistaActiva === 'registro-qr') {
     return (
       <div className="container">
-        <RegistroRepresentante onVolverAlPanel={esPublico ? null : () => setVistaActiva('principal')} />
+        <RegistroRepresentante esPublico={esPublico} onVolverAlPanel={esPublico ? null : () => setVistaActiva('principal')} />
       </div>
     );
   }
