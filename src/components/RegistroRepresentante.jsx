@@ -43,8 +43,6 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
   const [errorMsg, setErrorMsg] = useState(null);
   const [ticketGuardado, setTicketGuardado] = useState(null);
 
-  const [ticketSesion, setTicketSesion] = useState(null);
-
   // Generar número de ticket único para el día activo (se reinicia al cerrar el día)
   const generarTicket = async () => {
     try {
@@ -135,7 +133,7 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
 
     try {
       const parentescoFinal = parentescoRep === 'Otro' ? otroParentesco : parentescoRep;
-      let numTicketCalculado = ticketSesion || await generarTicket();
+      let numTicketCalculado = await generarTicket();
       const salonAsignado = 'Usos Múltiples';
 
       // Formatear la cadena del representante para incluir Parentesco, Ticket y Salida
@@ -191,15 +189,15 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
       }
 
       // --- VERIFICACIÓN Y PROTECCIÓN ANTI-COLISIÓN SIMULTÁNEA ---
-      if (!ticketSesion && targetId) {
+      if (targetId) {
         const { data: todosActivosHoy } = await supabase
           .from('estudiantes')
           .select('id, nombre_representante, telefono_representante')
           .eq('activo_este_domingo', true);
 
-        // Buscar si otro representante distinto tiene asignado el mismo ticket
+        // Buscar si otro estudiante activo ya tiene asignado el mismo ticket
         const duplicadosEncontrados = (todosActivosHoy || []).filter(e => {
-          if (e.id === targetId || e.telefono_representante === telefonoRep.trim()) return false;
+          if (e.id === targetId) return false;
           const match = (e.nombre_representante || '').match(/Ticket:\s*#?(\d+)/i);
           return match && match[1] === numTicketCalculado;
         });
@@ -223,10 +221,6 @@ export default function RegistroRepresentante({ onVolverAlPanel }) {
             .update({ nombre_representante: infoRepresentanteFormateada })
             .eq('id', targetId);
         }
-
-        setTicketSesion(numTicketCalculado);
-      } else if (!ticketSesion) {
-        setTicketSesion(numTicketCalculado);
       }
 
       // Guardar ticket para mostrar en pantalla al representante
