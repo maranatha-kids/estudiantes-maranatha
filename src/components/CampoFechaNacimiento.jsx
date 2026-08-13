@@ -26,18 +26,30 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
   const hoyObj = new Date();
   const hoyAnio = hoyObj.getFullYear();
 
-  // Desglosar valor YYYY-MM-DD
-  const partes = (value || '').split('-');
-  const [anioStr, setAnioStr] = useState(partes[0] || '');
-  const [mesStr, setMesStr] = useState(partes[1] || '');
-  const [diaStr, setDiaStr] = useState(partes[2] || '');
+  // Desglosar valor inicial YYYY-MM-DD
+  const partesIniciales = (value || '').split('-');
+  const [anioStr, setAnioStr] = useState(partesIniciales[0] || '');
+  const [mesStr, setMesStr] = useState(partesIniciales[1] || '');
+  const [diaStr, setDiaStr] = useState(partesIniciales[2] || '');
 
-  // Sincronizar estado local si `value` cambia externamente
+  // Sincronizar con `value` si viene de fuera (ej. abrir modal de edición o reseteo de formulario)
   useEffect(() => {
-    const p = (value || '').split('-');
-    setAnioStr(p[0] || '');
-    setMesStr(p[1] || '');
-    setDiaStr(p[2] || '');
+    if (value) {
+      const p = value.split('-');
+      if (p.length === 3) {
+        if (p[0] !== anioStr) setAnioStr(p[0]);
+        if (p[1] !== mesStr) setMesStr(p[1]);
+        if (p[2] !== diaStr) setDiaStr(p[2]);
+      }
+    } else {
+      // Si el valor externo se vació por completo (ej. reseteo del formulario)
+      const compuestoActual = `${anioStr}-${mesStr}-${diaStr}`;
+      if (value === '' && compuestoActual.length >= 8 && anioStr.length === 4) {
+        setAnioStr('');
+        setMesStr('');
+        setDiaStr('');
+      }
+    }
   }, [value]);
 
   // Lista de años desde minYear (2010) hasta hoyAnio
@@ -52,7 +64,7 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
     diasDisponibles.push(String(d).padStart(2, '0'));
   }
 
-  const actualizarFechaGlobal = (d, m, a) => {
+  const notificarPadre = (d, m, a) => {
     if (d && m && a && a.length === 4) {
       const dPadded = String(d).padStart(2, '0');
       const mPadded = String(m).padStart(2, '0');
@@ -66,7 +78,7 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
     let val = e.target.value.replace(/\D/g, '').slice(0, 2);
     if (parseInt(val, 10) > 31) val = '31';
     setDiaStr(val);
-    actualizarFechaGlobal(val, mesStr, anioStr);
+    notificarPadre(val, mesStr, anioStr);
 
     if (val.length === 2 && mesRef.current) {
       mesRef.current.focus();
@@ -77,7 +89,7 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
     let val = e.target.value.replace(/\D/g, '').slice(0, 2);
     if (parseInt(val, 10) > 12) val = '12';
     setMesStr(val);
-    actualizarFechaGlobal(diaStr, val, anioStr);
+    notificarPadre(diaStr, val, anioStr);
 
     if (val.length === 2 && anioRef.current) {
       anioRef.current.focus();
@@ -87,18 +99,26 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
   const handleAnioChange = (e) => {
     let val = e.target.value.replace(/\D/g, '').slice(0, 4);
     setAnioStr(val);
-    actualizarFechaGlobal(diaStr, mesStr, val);
+    notificarPadre(diaStr, mesStr, val);
+  };
+
+  const handleMesKeyDown = (e) => {
+    if (e.key === 'Backspace' && !mesStr && diaRef.current) {
+      diaRef.current.focus();
+    }
+  };
+
+  const handleAnioKeyDown = (e) => {
+    if (e.key === 'Backspace' && !anioStr && mesRef.current) {
+      mesRef.current.focus();
+    }
   };
 
   const handleSelectChange = (nDia, nMes, nAnio) => {
     setDiaStr(nDia);
     setMesStr(nMes);
     setAnioStr(nAnio);
-    if (nDia && nMes && nAnio) {
-      onChange(`${nAnio}-${nMes}-${nDia}`);
-    } else {
-      onChange('');
-    }
+    notificarPadre(nDia, nMes, nAnio);
   };
 
   return (
@@ -186,6 +206,7 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
               placeholder="Mes (MM)"
               value={mesStr}
               onChange={handleMesChange}
+              onKeyDown={handleMesKeyDown}
               required={required}
               style={{
                 width: '100%',
@@ -213,6 +234,7 @@ export default function CampoFechaNacimiento({ value, onChange, minYear = 2010, 
               placeholder="Año (AAAA)"
               value={anioStr}
               onChange={handleAnioChange}
+              onKeyDown={handleAnioKeyDown}
               required={required}
               style={{
                 width: '100%',
