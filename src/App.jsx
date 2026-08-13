@@ -190,11 +190,7 @@ function App() {
       </header>
 
       {vistaActiva === 'principal' ? (
-        <main className="app-grid">
-          <aside>
-            <FormularioIngreso onEstudianteAgregado={handleEstudianteAgregado} onGraduacion={handleGraduacion} />
-          </aside>
-          
+        <main style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <section>
             <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Panel de Salones (Hoy)</h2>
