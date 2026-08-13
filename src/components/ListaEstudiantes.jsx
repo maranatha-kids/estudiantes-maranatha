@@ -192,6 +192,18 @@ export default function ListaEstudiantes({ refreshTrigger }) {
             onSaved={fetchEstudiantes} 
           />
         )}
+
+        {/* Modal de confirmación para remover estudiante de la lista de hoy */}
+        {estudianteARemover && (
+          <ModalConfirmacion 
+            titulo="¿Remover Estudiante?"
+            mensaje={`¿Estás seguro de que deseas remover a ${estudianteARemover.nombre} ${estudianteARemover.apellido} de la asistencia de hoy?`}
+            textoBotonConfirmar="Sí, Remover"
+            onCancelar={() => setEstudianteARemover(null)}
+            onConfirmar={handleConfirmarRemover}
+            isCargando={isRemoviendo}
+          />
+        )}
       </div>
     );
   }

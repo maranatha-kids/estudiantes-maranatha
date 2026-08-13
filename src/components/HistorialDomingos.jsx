@@ -8,8 +8,13 @@ export default function HistorialDomingos() {
   const [loading, setLoading] = useState(true);
   const [carpetaSeleccionada, setCarpetaSeleccionada] = useState(null);
   const [busquedaHistorial, setBusquedaHistorial] = useState('');
+  
+  // Modales de eliminación
   const [registroAEliminar, setRegistroAEliminar] = useState(null);
   const [isEliminando, setIsEliminando] = useState(false);
+
+  const [estudianteAEliminarHistorial, setEstudianteAEliminarHistorial] = useState(null);
+  const [isEliminandoEstudiante, setIsEliminandoEstudiante] = useState(false);
 
   useEffect(() => {
     fetchHistorial();
@@ -49,7 +54,16 @@ export default function HistorialDomingos() {
         });
       });
 
-      setHistorial(Object.values(agrupadosPorFecha));
+      const listaFormateada = Object.values(agrupadosPorFecha);
+      setHistorial(listaFormateada);
+
+      // Si hay una carpeta seleccionada, actualizar sus datos reflejados
+      if (carpetaSeleccionada) {
+        const actualizada = listaFormateada.find(c => c.fecha === carpetaSeleccionada.fecha);
+        if (actualizada) {
+          setCarpetaSeleccionada(actualizada);
+        }
+      }
     }
     setLoading(false);
   };
@@ -66,12 +80,43 @@ export default function HistorialDomingos() {
     const { error } = await supabase.from('historial_domingos').delete().in('id', idsAEliminar);
     if (error) {
       console.error('Error deleting:', error);
-      alert('Hubo un error al eliminar el registro.');
+      alert('Hubo un error al eliminar la carpeta del historial.');
     } else {
       setRegistroAEliminar(null);
+      if (carpetaSeleccionada && (carpetaSeleccionada.ids || []).some(id => idsAEliminar.includes(id))) {
+        setCarpetaSeleccionada(null);
+      }
       fetchHistorial();
     }
     setIsEliminando(false);
+  };
+
+  const handleConfirmarEliminarEstudianteHistorial = async () => {
+    if (!estudianteAEliminarHistorial || !carpetaSeleccionada) return;
+    setIsEliminandoEstudiante(true);
+
+    try {
+      const idsActualizar = carpetaSeleccionada.ids || [carpetaSeleccionada.id];
+      const nuevosEstudiantes = (carpetaSeleccionada.estudiantes || []).filter(e => 
+        e.id !== estudianteAEliminarHistorial.id && 
+        !(e.nombre === estudianteAEliminarHistorial.nombre && e.apellido === estudianteAEliminarHistorial.apellido)
+      );
+
+      for (const id of idsActualizar) {
+        await supabase
+          .from('historial_domingos')
+          .update({ estudiantes: nuevosEstudiantes })
+          .eq('id', id);
+      }
+
+      setEstudianteAEliminarHistorial(null);
+      await fetchHistorial();
+    } catch (err) {
+      console.error('Error al remover estudiante del historial:', err);
+      alert('Error al remover el estudiante del historial.');
+    } finally {
+      setIsEliminandoEstudiante(false);
+    }
   };
 
   const formatearFecha = (fechaISO) => {
@@ -184,32 +229,56 @@ export default function HistorialDomingos() {
               const ticketNum = extraerTicket(e.nombre_representante);
               return (
                 <div key={e.id || e.nombre + e.apellido} className="estudiante-item" style={{ borderLeft: `4px solid ${e.genero === 'Niña' ? '#ec4899' : e.genero === 'Niño' ? 'var(--accent-primary)' : 'var(--text-secondary)'}`, padding: '1rem' }}>
-                  <div className="estudiante-nombre" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{e.nombre} {e.apellido}</div>
-                  {e.edad && <div className="estudiante-edad" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{e.edad} años ({e.genero || 'No especificado'})</div>}
-                  
-                  {ticketNum && (
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(59, 130, 246, 0.15)', border: '1px solid var(--accent-primary)', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '0.4rem' }}>
-                      <Ticket size={14} color="var(--accent-primary)" /> Ticket #{ticketNum}
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div className="estudiante-nombre" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{e.nombre} {e.apellido}</div>
+                      {e.edad && <div className="estudiante-edad" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{e.edad} años ({e.genero || 'No especificado'})</div>}
+                      
+                      {ticketNum && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(59, 130, 246, 0.15)', border: '1px solid var(--accent-primary)', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '0.4rem' }}>
+                          <Ticket size={14} color="var(--accent-primary)" /> Ticket #{ticketNum}
+                        </div>
+                      )}
 
-                  {e.nombre_representante && (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.4rem' }}>
-                      Representante: {e.nombre_representante}
-                    </div>
-                  )}
+                      {e.nombre_representante && (
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.4rem' }}>
+                          Representante: {e.nombre_representante}
+                        </div>
+                      )}
 
-                  {e.telefono_representante && (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Phone size={14} color="var(--accent-primary)" />
-                      <span><strong>Teléfono:</strong> {e.telefono_representante}</span>
+                      {e.telefono_representante && (
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <Phone size={14} color="var(--accent-primary)" />
+                          <span><strong>Teléfono:</strong> {e.telefono_representante}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    <button
+                      onClick={() => setEstudianteAEliminarHistorial(e)}
+                      style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '0.4rem', borderRadius: '6px', cursor: 'pointer' }}
+                      title="Eliminar registro de esta carpeta"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               );
             })
           )}
         </div>
+
+        {/* Modal de eliminación de estudiante individual del historial */}
+        {estudianteAEliminarHistorial && (
+          <ModalConfirmacion 
+            titulo="¿Eliminar Registro del Historial?"
+            mensaje={`¿Deseas remover a ${estudianteAEliminarHistorial.nombre} ${estudianteAEliminarHistorial.apellido} de la carpeta de asistencia del ${formatearFecha(carpetaSeleccionada.fecha)}?`}
+            textoBotonConfirmar="Sí, Eliminar"
+            onCancelar={() => setEstudianteAEliminarHistorial(null)}
+            onConfirmar={handleConfirmarEliminarEstudianteHistorial}
+            isCargando={isEliminandoEstudiante}
+          />
+        )}
       </div>
     );
   }
@@ -281,7 +350,7 @@ export default function HistorialDomingos() {
         </div>
       )}
 
-      {/* Modal Personalizado de Confirmación de Eliminación */}
+      {/* Modal Personalizado de Confirmación de Eliminación de carpeta */}
       {registroAEliminar && (
         <ModalConfirmacion 
           titulo="¿Eliminar Registro de Asistencia?"
