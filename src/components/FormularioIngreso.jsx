@@ -92,9 +92,76 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
       .trim();
   };
 
+  // Generar número de ticket único para el día activo (iniciando desde 001, ignorando graduados)
+  const generarTicket = async () => {
+    try {
+      const { data: activos, error } = await supabase
+        .from('estudiantes')
+        .select('nombre_representante, fecha_nacimiento, salon_actual')
+        .eq('activo_este_domingo', true);
+
+      if (error) throw error;
+
+      const noGraduados = (activos || []).filter(e => {
+        if (e.salon_actual === 'Graduado') return false;
+        if (e.fecha_nacimiento && calcularEdad(e.fecha_nacimiento) > 12) return false;
+        return true;
+      });
+
+      let maxTicketHoy = 0;
+      noGraduados.forEach(e => {
+        if (e.nombre_representante) {
+          const match = e.nombre_representante.match(/Ticket:\s*#?(\d+)/i);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxTicketHoy) maxTicketHoy = num;
+          }
+        }
+      });
+
+      const siguiente = maxTicketHoy + 1;
+      return String(siguiente).padStart(3, '0');
+    } catch (err) {
+      console.error('Error al generar ticket:', err);
+      return '001';
+    }
+  };
+
   // Accion rapida: Confirmar llegada con 1 clic
   const handleConfirmarLlegada = async (estudiante) => {
-    const totalActivosHoy = todosLosEstudiantes.filter(e => e.activo_este_domingo).length;
+    const edadEst = estudiante.fecha_nacimiento ? calcularEdad(estudiante.fecha_nacimiento) : 0;
+    const esGraduado = estudiante.salon_actual === 'Graduado' || edadEst > 12;
+
+    if (esGraduado) {
+      setCargandoId(estudiante.id);
+      try {
+        await supabase
+          .from('estudiantes')
+          .update({ salon_actual: 'Graduado', activo_este_domingo: false })
+          .eq('id', estudiante.id);
+
+        setMensajeNotificacion(`🎓 ${estudiante.nombre} ${estudiante.apellido} ha sido archivado/a en Graduados (Mayor de 12 años).`);
+        setTimeout(() => setMensajeNotificacion(null), 5000);
+
+        if (onGraduacion) {
+          onGraduacion({
+            nombre: `${estudiante.nombre} ${estudiante.apellido}`,
+            salonNuevo: 'Graduado'
+          });
+        }
+
+        await fetchEstudiantes();
+        if (onEstudianteAgregado) onEstudianteAgregado();
+      } catch (err) {
+        console.error('Error al graduar estudiante:', err);
+        alert('Ocurrió un error al actualizar el estudiante.');
+      } finally {
+        setCargandoId(null);
+      }
+      return;
+    }
+
+    const totalActivosHoy = todosLosEstudiantes.filter(e => e.activo_este_domingo && e.salon_actual !== 'Graduado' && (!e.fecha_nacimiento || calcularEdad(e.fecha_nacimiento) <= 12)).length;
     if (!estudiante.activo_este_domingo && totalActivosHoy >= 300) {
       alert('El salón de Usos Múltiples ha alcanzado su capacidad máxima (300 estudiantes). El salón está lleno.');
       return;
@@ -102,14 +169,33 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
 
     setCargandoId(estudiante.id);
     try {
+      let repInfo = estudiante.nombre_representante || '';
+      let nuevoTicket = null;
+
+      // Si el estudiante no tiene número de ticket asignado hoy, generar el siguiente desde 001
+      if (!repInfo.match(/Ticket:\s*#?\w+/i)) {
+        nuevoTicket = await generarTicket();
+        if (repInfo.includes('(')) {
+          repInfo = repInfo.replace(/\)/, ` | Ticket: #${nuevoTicket})`);
+        } else if (repInfo) {
+          repInfo = `${repInfo} (Ticket: #${nuevoTicket})`;
+        } else {
+          repInfo = `Representante (Ticket: #${nuevoTicket})`;
+        }
+      }
+
       const { error } = await supabase
         .from('estudiantes')
-        .update({ activo_este_domingo: true })
+        .update({
+          activo_este_domingo: true,
+          nombre_representante: repInfo
+        })
         .eq('id', estudiante.id);
 
       if (error) throw error;
 
-      setMensajeNotificacion(`¡Llegada de ${estudiante.nombre} ${estudiante.apellido} confirmada correctamente!`);
+      const ticketMsg = nuevoTicket ? ` con Ticket #${nuevoTicket}` : '';
+      setMensajeNotificacion(`¡Llegada de ${estudiante.nombre} ${estudiante.apellido} confirmada correctamente${ticketMsg}!`);
       setTimeout(() => setMensajeNotificacion(null), 4000);
 
       await fetchEstudiantes();
@@ -127,38 +213,74 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
     e.preventDefault();
     if (!nombre.trim() || !apellido.trim() || !genero || !fechaNacimiento) return;
 
-    if (edad < 8 || edad > 12) {
-      alert('La edad debe estar entre 8 y 12 años.');
-      return;
-    }
+    const edadEst = calcularEdad(fechaNacimiento);
+    const esGraduado = edadEst > 12;
 
-    const totalActivosHoy = todosLosEstudiantes.filter(e => e.activo_este_domingo).length;
-    if (totalActivosHoy >= 300) {
-      alert('El salón de Usos Múltiples ha alcanzado su capacidad máxima (300 estudiantes). El salón está lleno.');
+    if (edadEst < 8) {
+      alert('El niño debe tener al menos 8 años.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      let repInfo = nombreRep.trim() ? `${nombreRep.trim()} (Salida: ${modoSalida})` : `Representante (Salida: ${modoSalida})`;
+      if (esGraduado) {
+        let repInfo = nombreRep.trim() ? `${nombreRep.trim()} (Graduado/a | Salida: ${modoSalida})` : `Representante (Graduado/a | Salida: ${modoSalida})`;
 
-      const { error } = await supabase
-        .from('estudiantes')
-        .insert([{
-          nombre: nombre.trim(),
-          apellido: apellido.trim(),
-          genero,
-          fecha_nacimiento: fechaNacimiento,
-          salon_actual: 'Usos Múltiples',
-          nombre_representante: repInfo,
-          apellido_representante: apellidoRep.trim() || null,
-          telefono_representante: telefonoRep.trim() || null,
-          activo_este_domingo: true
-        }]);
+        const { error } = await supabase
+          .from('estudiantes')
+          .insert([{
+            nombre: nombre.trim(),
+            apellido: apellido.trim(),
+            genero,
+            fecha_nacimiento: fechaNacimiento,
+            salon_actual: 'Graduado',
+            nombre_representante: repInfo,
+            apellido_representante: apellidoRep.trim() || null,
+            telefono_representante: telefonoRep.trim() || null,
+            activo_este_domingo: false
+          }]);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setMensajeNotificacion(`¡Estudiante ${nombre} ${apellido} registrado y confirmado hoy!`);
+        setMensajeNotificacion(`🎓 ¡Estudiante ${nombre} ${apellido} registrado en el módulo de Graduados!`);
+        if (onGraduacion) {
+          onGraduacion({
+            nombre: `${nombre} ${apellido}`,
+            salonNuevo: 'Graduado'
+          });
+        }
+      } else {
+        const totalActivosHoy = todosLosEstudiantes.filter(e => e.activo_este_domingo && e.salon_actual !== 'Graduado' && (!e.fecha_nacimiento || calcularEdad(e.fecha_nacimiento) <= 12)).length;
+        if (totalActivosHoy >= 300) {
+          alert('El salón de Usos Múltiples ha alcanzado su capacidad máxima (300 estudiantes). El salón está lleno.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const numTicketCalculado = await generarTicket();
+        let repInfo = nombreRep.trim()
+          ? `${nombreRep.trim()} (Ticket: #${numTicketCalculado} | Salida: ${modoSalida})`
+          : `Representante (Ticket: #${numTicketCalculado} | Salida: ${modoSalida})`;
+
+        const { error } = await supabase
+          .from('estudiantes')
+          .insert([{
+            nombre: nombre.trim(),
+            apellido: apellido.trim(),
+            genero,
+            fecha_nacimiento: fechaNacimiento,
+            salon_actual: 'Usos Múltiples',
+            nombre_representante: repInfo,
+            apellido_representante: apellidoRep.trim() || null,
+            telefono_representante: telefonoRep.trim() || null,
+            activo_este_domingo: true
+          }]);
+
+        if (error) throw error;
+
+        setMensajeNotificacion(`¡Estudiante ${nombre} ${apellido} registrado con Ticket #${numTicketCalculado}!`);
+      }
+
       setTimeout(() => setMensajeNotificacion(null), 4000);
 
       // Limpiar campos
@@ -175,7 +297,7 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
       if (onEstudianteAgregado) onEstudianteAgregado();
     } catch (err) {
       console.error('Error al guardar registro manual:', err);
-      alert('Ocurrió un error al guardar los datos.');
+      alert('Ocurrió un error al guardar los datos: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }

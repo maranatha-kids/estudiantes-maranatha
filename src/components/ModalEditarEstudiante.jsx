@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { X, Save, User, ShieldCheck, Phone, Trash2, LogOut } from 'lucide-react';
+import { X, Save, User, ShieldCheck, Trash2, LogOut } from 'lucide-react';
 import CampoFechaNacimiento from './CampoFechaNacimiento';
+import ModalConfirmacion from './ModalConfirmacion';
 
 function calcularEdad(fechaString) {
   if (!fechaString) return 0;
@@ -138,11 +139,9 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
         setIsSubmitting(false);
         return;
       }
-      if (edadCalculada > 12) {
-        setErrorMsg('El estudiante no puede tener más de 12 años (Límite permitido: 12 años).');
-        setIsSubmitting(false);
-        return;
-      }
+
+      const esGraduado = edadCalculada > 12;
+      const salonAsignado = esGraduado ? 'Graduado' : 'Usos Múltiples';
 
       if (numeroTelefono && numeroTelefono.length !== 7) {
         setErrorMsg('El número de teléfono debe tener los 7 dígitos completos después del código (Ej. 0414 + 1234567).');
@@ -151,17 +150,20 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
       }
 
       const telefonoFinal = numeroTelefono ? `${codigoTelefono}${numeroTelefono}` : '';
-      const salonAsignado = 'Usos Múltiples';
 
-      // Preservar el ticket original si existía
+      // Preservar el ticket original si existía (solo para no graduados)
       const ticketOriginal = extraerTicketOriginal(estudiante.nombre_representante);
       let nombreRepFinal = nombreRep.trim();
-      if (ticketOriginal && !nombreRepFinal.toLowerCase().includes('ticket:')) {
-        nombreRepFinal = `${nombreRepFinal} (Ticket: #${ticketOriginal} | Salida: ${modoSalida})`;
-      } else if (!nombreRepFinal.toLowerCase().includes('salida:')) {
-        nombreRepFinal = `${nombreRepFinal} (Salida: ${modoSalida})`;
+      if (!esGraduado) {
+        if (ticketOriginal && !nombreRepFinal.toLowerCase().includes('ticket:')) {
+          nombreRepFinal = `${nombreRepFinal} (Ticket: #${ticketOriginal} | Salida: ${modoSalida})`;
+        } else if (!nombreRepFinal.toLowerCase().includes('salida:')) {
+          nombreRepFinal = `${nombreRepFinal} (Salida: ${modoSalida})`;
+        } else {
+          nombreRepFinal = nombreRepFinal.replace(/Salida:\s*[^)]+/i, `Salida: ${modoSalida}`);
+        }
       } else {
-        nombreRepFinal = nombreRepFinal.replace(/Salida:\s*[^)]+/i, `Salida: ${modoSalida}`);
+        nombreRepFinal = `${nombreRepFinal.replace(/\s*\|\s*Ticket:\s*#?\w+/i, '').replace(/\s*Ticket:\s*#?\w+/i, '')} (Graduado/a | Salida: ${modoSalida})`;
       }
 
       const { error } = await supabase
@@ -172,6 +174,7 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
           genero: genero,
           fecha_nacimiento: fechaNacimiento,
           salon_actual: salonAsignado,
+          activo_este_domingo: esGraduado ? false : estudiante.activo_este_domingo,
           nombre_representante: nombreRepFinal,
           telefono_representante: telefonoFinal
         })
@@ -313,8 +316,8 @@ export default function ModalEditarEstudiante({ estudiante, onClose, onSaved }) 
             </div>
 
             {fechaNacimiento && (
-              <div style={{ marginTop: '0.8rem', padding: '0.5rem', background: (edadCalculada < 8 || edadCalculada > 12) ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', fontSize: '0.85rem' }}>
-                Edad calculada: <strong>{edadCalculada} años</strong> | Salón: <strong>{edadCalculada > 12 ? '❌ Excede límite (Máx. 12 años)' : (edadCalculada >= 8 ? 'Usos Múltiples' : 'Menor de 8 años')}</strong>
+              <div style={{ marginTop: '0.8rem', padding: '0.5rem', background: edadCalculada > 12 ? 'rgba(234, 179, 8, 0.15)' : (edadCalculada < 8 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.1)'), borderRadius: '6px', fontSize: '0.85rem' }}>
+                Edad calculada: <strong>{edadCalculada} años</strong> | Salón: <strong>{edadCalculada > 12 ? '🎓 Graduado/a (Mayor de 12 años)' : (edadCalculada >= 8 ? 'Usos Múltiples' : 'Menor de 8 años')}</strong>
               </div>
             )}
           </div>

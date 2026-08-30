@@ -63,6 +63,23 @@ function App() {
     setIsCerrando(false);
   };
 
+function calcularEdad(fechaString) {
+  if (!fechaString) return 0;
+  const partes = fechaString.split('-');
+  if (partes.length !== 3) return 0;
+  const anio = parseInt(partes[0], 10);
+  const mes = parseInt(partes[1], 10) - 1;
+  const dia = parseInt(partes[2], 10);
+
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - anio;
+  const m = hoy.getMonth() - mes;
+  if (m < 0 || (m === 0 && hoy.getDate() < dia)) {
+    edad--;
+  }
+  return edad;
+}
+
   const handleConfirmarCierreDia = async (fechaCierre) => {
     if (!modalCerrarData || !modalCerrarData.activos) return;
 
@@ -70,7 +87,78 @@ function App() {
     try {
       const activos = modalCerrarData.activos;
 
-      // 2. Guardar o actualizar en historial_domingos con la fecha seleccionada por el usuario
+      // 1. Separar estudiantes graduados de los no graduados
+      const graduados = [];
+      const noGraduados = [];
+
+      activos.forEach(est => {
+        const edadEst = est.fecha_nacimiento ? calcularEdad(est.fecha_nacimiento) : (est.edad || 0);
+        if (est.salon_actual === 'Graduado' || edadEst > 12) {
+          graduados.push(est);
+        } else {
+          noGraduados.push(est);
+        }
+      });
+
+      // 2. Si hay estudiantes graduados, archivarlos en Supabase como Graduado y desactivarlos
+      if (graduados.length > 0) {
+        const idsGraduados = graduados.map(g => g.id);
+        const { error: errGraduados } = await supabase
+          .from('estudiantes')
+          .update({
+            salon_actual: 'Graduado',
+            activo_este_domingo: false
+          })
+          .in('id', idsGraduados);
+
+        if (errGraduados) {
+          console.error('Error al actualizar estudiantes graduados:', errGraduados);
+        }
+      }
+
+      // 3. Re-numerar los estudiantes que aún no se han graduado secuencialmente desde el número 001
+      // Ordenar por ticket previo si existe, o por orden de llegada (created_at)
+      noGraduados.sort((a, b) => {
+        const matchA = (a.nombre_representante || '').match(/Ticket:\s*#?(\d+)/i);
+        const matchB = (b.nombre_representante || '').match(/Ticket:\s*#?(\d+)/i);
+        const numA = matchA ? parseInt(matchA[1], 10) : 9999;
+        const numB = matchB ? parseInt(matchB[1], 10) : 9999;
+        if (numA !== numB) return numA - numB;
+        return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      });
+
+      const noGraduadosRenumerados = noGraduados.map((est, index) => {
+        const ticketSecuencial = String(index + 1).padStart(3, '0');
+        let repInfo = est.nombre_representante || '';
+
+        if (repInfo.match(/Ticket:\s*#?\w+/i)) {
+          repInfo = repInfo.replace(/Ticket:\s*#?\w+/i, `Ticket: #${ticketSecuencial}`);
+        } else if (repInfo.includes('(')) {
+          repInfo = repInfo.replace(/\)/, ` | Ticket: #${ticketSecuencial})`);
+        } else if (repInfo) {
+          repInfo = `${repInfo} (Ticket: #${ticketSecuencial})`;
+        } else {
+          repInfo = `Representante (Ticket: #${ticketSecuencial})`;
+        }
+
+        return {
+          ...est,
+          nombre_representante: repInfo
+        };
+      });
+
+      // Actualizar en Supabase los estudiantes no graduados con su nuevo ticket y desactivar
+      for (const est of noGraduadosRenumerados) {
+        await supabase
+          .from('estudiantes')
+          .update({
+            nombre_representante: est.nombre_representante,
+            activo_este_domingo: false
+          })
+          .eq('id', est.id);
+      }
+
+      // 4. Guardar o actualizar en historial_domingos con los estudiantes no graduados desde el #001
       const { data: existentes } = await supabase
         .from('historial_domingos')
         .select('*')
@@ -81,7 +169,7 @@ function App() {
         const estsExistentes = regExistente.estudiantes || [];
         const estsCombinados = [...estsExistentes];
 
-        activos.forEach(nuevoEst => {
+        noGraduadosRenumerados.forEach(nuevoEst => {
           if (!estsCombinados.some(e => e.id === nuevoEst.id || (e.nombre === nuevoEst.nombre && e.apellido === nuevoEst.apellido))) {
             estsCombinados.push(nuevoEst);
           }
@@ -96,12 +184,12 @@ function App() {
       } else {
         const { error: errInsert } = await supabase
           .from('historial_domingos')
-          .insert([{ fecha: fechaCierre, estudiantes: activos }]);
+          .insert([{ fecha: fechaCierre, estudiantes: noGraduadosRenumerados }]);
 
         if (errInsert) throw errInsert;
       }
 
-      // 3. Desactivar a todos los estudiantes (activo_este_domingo = false)
+      // 5. Desactivar a cualquier estudiante restante (activo_este_domingo = false)
       const { error: errUpdate } = await supabase
         .from('estudiantes')
         .update({ activo_este_domingo: false })
@@ -109,7 +197,8 @@ function App() {
       
       if (errUpdate) throw errUpdate;
 
-      alert(`¡Día cerrado correctamente para la fecha ${fechaCierre}! Los datos se han guardado en el historial.`);
+      const mensajeGrad = graduados.length > 0 ? ` (${graduados.length} archivados como graduados)` : '';
+      alert(`¡Día cerrado correctamente para la fecha ${fechaCierre}! Los ${noGraduadosRenumerados.length} estudiantes activos fueron guardados secuencialmente desde el #001${mensajeGrad}.`);
       setModalCerrarData(null);
       setRefreshTrigger(prev => prev + 1);
 
@@ -221,6 +310,9 @@ function App() {
                   {isCerrando ? 'Cargando...' : 'Cerrar Día'}
                 </button>
               </div>
+            </div>
+            <div style={{ marginBottom: '2rem' }}>
+              <FormularioIngreso onEstudianteAgregado={handleEstudianteAgregado} onGraduacion={handleGraduacion} />
             </div>
             <ListaEstudiantes refreshTrigger={refreshTrigger} />
           </section>

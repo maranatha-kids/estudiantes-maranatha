@@ -64,18 +64,26 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
   };
 
   // Generar número de ticket único para el día activo (se reinicia al cerrar el día)
+  // Ignora estudiantes graduados para que los no graduados comiencen desde 001
   const generarTicket = async () => {
     try {
       // Consultar únicamente los estudiantes activos el día de HOY
       const { data: activos, error } = await supabase
         .from('estudiantes')
-        .select('nombre_representante')
+        .select('nombre_representante, fecha_nacimiento, salon_actual')
         .eq('activo_este_domingo', true);
 
       if (error) throw error;
 
+      // Filtrar ignorando a los estudiantes que ya se han graduado
+      const noGraduados = (activos || []).filter(e => {
+        if (e.salon_actual === 'Graduado') return false;
+        if (e.fecha_nacimiento && calcularEdad(e.fecha_nacimiento) > 12) return false;
+        return true;
+      });
+
       let maxTicketHoy = 0;
-      (activos || []).forEach(e => {
+      noGraduados.forEach(e => {
         if (e.nombre_representante) {
           const match = e.nombre_representante.match(/Ticket:\s*#?(\d+)/i);
           if (match) {
@@ -144,16 +152,12 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
       return;
     }
 
-    if (edad > 12) {
-      setErrorMsg('El niño no puede tener más de 12 años (Límite máximo permitido: 12 años).');
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
       const parentescoFinal = parentescoRep === 'Otro' ? otroParentesco : parentescoRep;
-      const salonAsignado = 'Usos Múltiples';
+      const esGraduado = edad > 12;
+      const salonAsignado = esGraduado ? 'Graduado' : 'Usos Múltiples';
 
       // Buscar si el niño ya existía previamente por Nombre y Apellido
       const { data: existencias } = await supabase
@@ -164,23 +168,32 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
 
       let estudianteExistente = existencias && existencias.length > 0 ? existencias[0] : null;
 
-      // Verificar capacidad máxima de 300 estudiantes activos
-      const { count: totalActivosHoy } = await supabase
-        .from('estudiantes')
-        .select('*', { count: 'exact', head: true })
-        .eq('activo_este_domingo', true);
+      // Si no es graduado, verificar capacidad máxima de 300 estudiantes activos
+      if (!esGraduado) {
+        const { count: totalActivosHoy } = await supabase
+          .from('estudiantes')
+          .select('*', { count: 'exact', head: true })
+          .eq('activo_este_domingo', true);
 
-      if ((!estudianteExistente || !estudianteExistente.activo_este_domingo) && totalActivosHoy >= 300) {
-        setIsSalonLleno(true);
-        setErrorMsg('El salón de Usos Múltiples ha alcanzado su capacidad máxima (300 estudiantes). El salón está lleno.');
-        setIsSubmitting(false);
-        return;
+        if ((!estudianteExistente || !estudianteExistente.activo_este_domingo) && totalActivosHoy >= 300) {
+          setIsSalonLleno(true);
+          setErrorMsg('El salón de Usos Múltiples ha alcanzado su capacidad máxima (300 estudiantes). El salón está lleno.');
+          setIsSubmitting(false);
+          return;
+        }
       }
 
-      let numTicketCalculado = await generarTicket();
+      // Solo los estudiantes NO graduados reciben ticket (iniciando desde 001)
+      let numTicketCalculado = null;
+      let infoRepresentanteFormateada = '';
 
-      // Formatear la cadena del representante para incluir Parentesco, Ticket y Salida
-      let infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Ticket: #${numTicketCalculado} | Salida: ${modoSalida})`;
+      if (esGraduado) {
+        infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Graduado/a | Salida: ${modoSalida})`;
+      } else {
+        numTicketCalculado = await generarTicket();
+        infoRepresentanteFormateada = `${nombreRep.trim()} ${apellidoRep.trim()} (${parentescoFinal} | Ticket: #${numTicketCalculado} | Salida: ${modoSalida})`;
+      }
+
       let targetId = null;
 
       if (estudianteExistente) {
@@ -194,7 +207,7 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
             nombre_representante: infoRepresentanteFormateada,
             apellido_representante: apellidoRep.trim(),
             telefono_representante: telefonoRep.trim(),
-            activo_este_domingo: true
+            activo_este_domingo: !esGraduado
           })
           .eq('id', estudianteExistente.id);
 
@@ -212,7 +225,7 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
             nombre_representante: infoRepresentanteFormateada,
             apellido_representante: apellidoRep.trim(),
             telefono_representante: telefonoRep.trim(),
-            activo_este_domingo: true
+            activo_este_domingo: !esGraduado
           }])
           .select();
 
@@ -222,16 +235,18 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
         }
       }
 
-      // --- VERIFICACIÓN Y PROTECCIÓN ANTI-COLISIÓN SIMULTÁNEA ---
-      if (targetId) {
+      // --- VERIFICACIÓN Y PROTECCIÓN ANTI-COLISIÓN SIMULTÁNEA (SOLO PARA NO GRADUADOS CON TICKET) ---
+      if (!esGraduado && targetId && numTicketCalculado) {
         const { data: todosActivosHoy } = await supabase
           .from('estudiantes')
-          .select('id, nombre_representante, telefono_representante')
+          .select('id, nombre_representante, telefono_representante, fecha_nacimiento, salon_actual')
           .eq('activo_este_domingo', true);
 
-        // Buscar si otro estudiante activo ya tiene asignado el mismo ticket
+        // Buscar si otro estudiante activo no graduado ya tiene asignado el mismo ticket
         const duplicadosEncontrados = (todosActivosHoy || []).filter(e => {
           if (e.id === targetId) return false;
+          if (e.salon_actual === 'Graduado') return false;
+          if (e.fecha_nacimiento && calcularEdad(e.fecha_nacimiento) > 12) return false;
           const match = (e.nombre_representante || '').match(/Ticket:\s*#?(\d+)/i);
           return match && match[1] === numTicketCalculado;
         });
@@ -240,10 +255,12 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
           // Recalcular en tiempo real el ticket más alto del día para resolver colisión
           let maxColision = parseInt(numTicketCalculado, 10);
           (todosActivosHoy || []).forEach(e => {
-            const match = (e.nombre_representante || '').match(/Ticket:\s*#?(\d+)/i);
-            if (match) {
-              const n = parseInt(match[1], 10);
-              if (n > maxColision) maxColision = n;
+            if (e.salon_actual !== 'Graduado' && (!e.fecha_nacimiento || calcularEdad(e.fecha_nacimiento) <= 12)) {
+              const match = (e.nombre_representante || '').match(/Ticket:\s*#?(\d+)/i);
+              if (match) {
+                const n = parseInt(match[1], 10);
+                if (n > maxColision) maxColision = n;
+              }
             }
           });
           numTicketCalculado = String(maxColision + 1).padStart(3, '0');
@@ -259,7 +276,8 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
 
       // Guardar ticket para mostrar en pantalla al representante
       setTicketGuardado({
-        ticket: numTicketCalculado,
+        ticket: esGraduado ? 'GRADUADO' : numTicketCalculado,
+        esGraduado: esGraduado,
         nino: `${nombreEst.trim()} ${apellidoEst.trim()}`,
         representante: `${nombreRep.trim()} ${apellidoRep.trim()}`,
         parentesco: parentescoFinal,
@@ -308,17 +326,31 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
             <p style={{ margin: '0.3rem 0 0 0', opacity: 0.9, fontSize: '0.9rem' }}>Maranatha Kids</p>
           </div>
 
-          <div style={{ background: 'rgba(59, 130, 246, 0.15)', border: '2px dashed var(--accent-primary)', borderRadius: '16px', padding: '1.2rem 0.8rem', marginBottom: '1.2rem' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>
-              Número de Turno / Ticket
-            </span>
-            <div style={{ fontSize: '3.2rem', fontWeight: 900, color: 'var(--accent-primary)', textShadow: '0 0 20px rgba(59,130,246,0.5)', margin: '0.4rem 0' }}>
-              #{ticketGuardado.ticket}
+          {ticketGuardado.esGraduado ? (
+            <div style={{ background: 'rgba(234, 179, 8, 0.15)', border: '2px dashed #eab308', borderRadius: '16px', padding: '1.2rem 0.8rem', marginBottom: '1.2rem' }}>
+              <span style={{ fontSize: '0.85rem', color: '#fef08a', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>
+                Registro de Graduado
+              </span>
+              <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#eab308', textShadow: '0 0 20px rgba(234,179,8,0.5)', margin: '0.4rem 0' }}>
+                🎓 Graduado/a
+              </div>
+              <p style={{ color: 'white', fontWeight: '500', fontSize: '0.95rem', margin: 0, lineHeight: 1.4 }}>
+                Este estudiante tiene más de 12 años y ha sido archivado en el módulo de <strong>Graduados</strong>. Los niños activos continúan guardándose desde el número <strong>#001</strong>.
+              </p>
             </div>
-            <p style={{ color: 'white', fontWeight: '500', fontSize: '0.95rem', margin: 0, lineHeight: 1.4 }}>
-              Muestra este número al recepcionista en la entrada para confirmar la llegada.
-            </p>
-          </div>
+          ) : (
+            <div style={{ background: 'rgba(59, 130, 246, 0.15)', border: '2px dashed var(--accent-primary)', borderRadius: '16px', padding: '1.2rem 0.8rem', marginBottom: '1.2rem' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>
+                Número de Turno / Ticket
+              </span>
+              <div style={{ fontSize: '3.2rem', fontWeight: 900, color: 'var(--accent-primary)', textShadow: '0 0 20px rgba(59,130,246,0.5)', margin: '0.4rem 0' }}>
+                #{ticketGuardado.ticket}
+              </div>
+              <p style={{ color: 'white', fontWeight: '500', fontSize: '0.95rem', margin: 0, lineHeight: 1.4 }}>
+                Muestra este número al recepcionista en la entrada para confirmar la llegada.
+              </p>
+            </div>
+          )}
 
           <div style={{ textAlign: 'left', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '12px', marginBottom: '1.2rem', fontSize: '0.9rem' }}>
             <h3 style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.4rem', marginBottom: '0.6rem', color: 'var(--accent-primary)', fontSize: '1rem' }}>
@@ -675,7 +707,7 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
             className="btn-primary" 
             disabled={
               isSubmitting || 
-              isSalonLleno ||
+              (edad <= 12 && isSalonLleno) ||
               !nombreRep.trim() || 
               !apellidoRep.trim() || 
               numeroTelefono.length !== 7 || 
@@ -685,12 +717,19 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
               !generoEst || 
               !fechaNacimientoEst || 
               !modoSalida ||
-              edad < 8 || 
-              edad > 12
+              edad < 8
             }
-            style={{ width: '100%', padding: '0.9rem', fontSize: '1rem', fontWeight: 'bold', background: isSalonLleno ? '#ef4444' : undefined }}
+            style={{
+              width: '100%',
+              padding: '0.9rem',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              background: (edad <= 12 && isSalonLleno) ? '#ef4444' : (edad > 12 ? 'rgba(234, 179, 8, 0.25)' : undefined),
+              border: edad > 12 ? '2px solid #eab308' : undefined,
+              color: edad > 12 ? '#fef08a' : undefined
+            }}
           >
-            {isSubmitting ? 'Generando Turno...' : (isSalonLleno ? 'Salón Lleno (Capacidad 300 Alcanzada)' : 'Obtener Número de Turno')}
+            {isSubmitting ? 'Guardando...' : (edad > 12 ? '🎓 Guardar en Registro de Graduados' : (isSalonLleno ? 'Salón Lleno (Capacidad 300 Alcanzada)' : 'Obtener Número de Turno'))}
           </button>
         </form>
       </div>

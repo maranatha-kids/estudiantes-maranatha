@@ -62,7 +62,7 @@ export default function ListaEstudiantes({ refreshTrigger }) {
   });
 
   const agrupados = {
-    'Usos Múltiples': estudiantesFiltrados.filter(e => e.edad >= 8 && e.edad <= 12)
+    'Usos Múltiples': estudiantesFiltrados.filter(e => e.salon_actual !== 'Graduado' && e.edad >= 8 && e.edad <= 12)
   };
 
   if (loading) {
@@ -95,7 +95,12 @@ export default function ListaEstudiantes({ refreshTrigger }) {
 
   // VISTA NIVEL 2: Detalle de un salón
   if (salonSeleccionado) {
-    const lista = agrupados[salonSeleccionado] || [];
+    const lista = (agrupados[salonSeleccionado] || []).slice().sort((a, b) => {
+      const ticketA = parseInt(extraerTicket(a.nombre_representante) || '9999', 10);
+      const ticketB = parseInt(extraerTicket(b.nombre_representante) || '9999', 10);
+      if (ticketA !== ticketB) return ticketA - ticketB;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
     const ninos = lista.filter(e => e.genero === 'Niño').length;
     const ninas = lista.filter(e => e.genero === 'Niña').length;
     
