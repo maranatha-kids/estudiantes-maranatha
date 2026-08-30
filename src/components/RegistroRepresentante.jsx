@@ -97,58 +97,68 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
     comprobarCapacidad();
   }, []);
 
-  // Facilitar datos del representante por número de teléfono real
+  const [ninosRegistrados, setNinosRegistrados] = useState([]);
+
+  // Facilitar datos del representante y del niño por número de teléfono real
   useEffect(() => {
     if (numeroTelefono.length === 7 && esTelefonoValido(codigoTelefono, numeroTelefono)) {
-      buscarYCompletarRepresentante(codigoTelefono, numeroTelefono);
+      buscarYCompletarDatos(codigoTelefono, numeroTelefono);
     } else {
       setAutocompletadoExitoso(false);
+      setNinosRegistrados([]);
     }
   }, [codigoTelefono, numeroTelefono]);
 
-  const buscarYCompletarRepresentante = async (codigo, numero) => {
+  const cargarDatosNino = (nino) => {
+    setNombreEst(nino.nombre || '');
+    setApellidoEst(nino.apellido || '');
+    setGeneroEst(nino.genero || 'Niño');
+    setFechaNacimientoEst(nino.fecha_nacimiento || '');
+    const salida = (nino.nombre_representante || '').toLowerCase().includes('se va solo')
+      ? 'Se va solo/a'
+      : 'Lo vienen a buscar';
+    setModoSalida(salida);
+  };
+
+  const buscarYCompletarDatos = async (codigo, numero) => {
     try {
       const tel = `${codigo}${numero}`;
       const { data, error } = await supabase
         .from('estudiantes')
-        .select('nombre_representante, apellido_representante')
+        .select('*')
         .eq('telefono_representante', tel)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .order('created_at', { ascending: false });
 
       if (!error && data && data.length > 0) {
+        // 1. Completar datos del representante
         const datos = extraerDatosRepresentante(data[0]);
-        let huboCambio = false;
-
-        setNombreRep(prev => {
-          if (!prev.trim() && datos.nombre) {
-            huboCambio = true;
-            return datos.nombre;
-          }
-          return prev;
-        });
-
-        setApellidoRep(prev => {
-          if (!prev.trim() && datos.apellido) {
-            huboCambio = true;
-            return datos.apellido;
-          }
-          return prev;
-        });
-
+        setNombreRep(prev => (!prev.trim() && datos.nombre) ? datos.nombre : prev);
+        setApellidoRep(prev => (!prev.trim() && datos.apellido) ? datos.apellido : prev);
         if (datos.parentesco && ['Padre', 'Madre', 'Abuelo/a', 'Tío/a', 'Hermano/a', 'Tutor Legal'].includes(datos.parentesco)) {
-          setParentescoRep(prev => {
-            if (prev === 'Padre' && datos.parentesco) return datos.parentesco;
-            return prev;
-          });
+          setParentescoRep(prev => (prev === 'Padre' && datos.parentesco) ? datos.parentesco : prev);
         }
 
-        if (huboCambio || datos.nombre) {
-          setAutocompletadoExitoso(true);
+        // 2. Extraer niños únicos asociados a este número
+        const unicos = [];
+        data.forEach(est => {
+          if (!unicos.some(u => u.nombre.toLowerCase().trim() === est.nombre.toLowerCase().trim() && u.apellido.toLowerCase().trim() === est.apellido.toLowerCase().trim())) {
+            unicos.push(est);
+          }
+        });
+        setNinosRegistrados(unicos);
+
+        // 3. Completar automáticamente los datos del niño
+        if (unicos.length > 0) {
+          cargarDatosNino(unicos[0]);
         }
+
+        setAutocompletadoExitoso(true);
+      } else {
+        setNinosRegistrados([]);
+        setAutocompletadoExitoso(false);
       }
     } catch (err) {
-      console.error('Error al autocompletar representante:', err);
+      console.error('Error al autocompletar datos por teléfono:', err);
     }
   };
 
@@ -600,7 +610,7 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                 </span>
               ) : autocompletadoExitoso ? (
                 <span style={{ color: '#4ade80', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
-                  ✓ Datos del representante completados por teléfono
+                  ✓ Datos del representante y niño completados por teléfono
                 </span>
               ) : null}
             </div>
@@ -646,6 +656,60 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
             <h3 style={{ fontSize: '1rem', color: 'var(--accent-primary)', marginBottom: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <User size={18} /> Datos del Niño / Niña
             </h3>
+
+            {/* Si el representante tiene más de 1 niño registrado previamente con este teléfono */}
+            {ninosRegistrados.length > 1 && (
+              <div style={{ marginBottom: '1rem', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid var(--accent-primary)', padding: '0.6rem 0.8rem', borderRadius: '8px' }}>
+                <span style={{ fontSize: '0.82rem', color: '#93c5fd', fontWeight: 'bold', display: 'block', marginBottom: '0.35rem' }}>
+                  Selecciona cuál de tus niños asiste hoy:
+                </span>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  {ninosRegistrados.map(n => {
+                    const seleccionado = nombreEst.toLowerCase().trim() === n.nombre.toLowerCase().trim() && apellidoEst.toLowerCase().trim() === n.apellido.toLowerCase().trim();
+                    return (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => cargarDatosNino(n)}
+                        style={{
+                          background: seleccionado ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.08)',
+                          border: `1px solid ${seleccionado ? 'white' : 'var(--glass-border)'}`,
+                          color: 'white',
+                          padding: '0.35rem 0.7rem',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.82rem',
+                          fontWeight: seleccionado ? 'bold' : 'normal'
+                        }}
+                      >
+                        {n.genero === 'Niña' ? '👧' : '👦'} {n.nombre} {n.apellido}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNombreEst('');
+                      setApellidoEst('');
+                      setGeneroEst('');
+                      setFechaNacimientoEst('');
+                      setModoSalida('Lo vienen a buscar');
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: '1px dashed var(--glass-border)',
+                      color: 'var(--text-secondary)',
+                      padding: '0.35rem 0.7rem',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.82rem'
+                    }}
+                  >
+                    + Registrar otro niño
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="form-responsive-row">
               <div className="form-group" style={{ marginBottom: '0.8rem' }}>
