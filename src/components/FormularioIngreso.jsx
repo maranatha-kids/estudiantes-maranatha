@@ -20,16 +20,6 @@ function calcularEdad(fechaString) {
   return edad;
 }
 
-function esTelefonoValido(codigo, numero) {
-  if (!numero || numero.length !== 7) return false;
-  if (numero === '0000000') return false;
-  if (/^(\d)\1{6}$/.test(numero)) return false;
-  if (numero === '1234567' || numero === '7654321' || numero === '0123456') return false;
-  const digitosUnicos = new Set(numero.split('')).size;
-  if (digitosUnicos < 3) return false;
-  return true;
-}
-
 export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }) {
   // Estado para el buscador rápido de asistencia
   const [busqueda, setBusqueda] = useState('');
@@ -50,10 +40,6 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
   const [modoSalida, setModoSalida] = useState('Lo vienen a buscar');
   const [edad, setEdad] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Búsqueda en nube para formulario manual
-  const [ninosManualEncontrados, setNinosManualEncontrados] = useState([]);
-  const [buscandoManualTel, setBuscandoManualTel] = useState(false);
 
   useEffect(() => {
     fetchEstudiantes();
@@ -82,50 +68,6 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
       setEdad(null);
     }
   }, [fechaNacimiento]);
-
-  // Búsqueda inteligente por teléfono para el formulario manual (descartando números ficticios)
-  useEffect(() => {
-    const raw = (telefonoRep || '').replace(/\D/g, '');
-    if (raw.length === 11) {
-      const cod = raw.slice(0, 4);
-      const num = raw.slice(4);
-      if (esTelefonoValido(cod, num)) {
-        buscarManualPorTelefono(raw);
-        return;
-      }
-    }
-    setNinosManualEncontrados([]);
-  }, [telefonoRep]);
-
-  const buscarManualPorTelefono = async (tel) => {
-    setBuscandoManualTel(true);
-    try {
-      const { data, error } = await supabase
-        .from('estudiantes')
-        .select('*')
-        .eq('telefono_representante', tel)
-        .order('created_at', { ascending: false });
-
-      if (!error && data && data.length > 0) {
-        if (!nombreRep.trim() && data[0].nombre_representante) {
-          setNombreRep(limpiarNombreRepresentante(data[0].nombre_representante));
-        }
-        const ninosUnicos = [];
-        data.forEach(e => {
-          if (!ninosUnicos.some(n => n.nombre.toLowerCase().trim() === e.nombre.toLowerCase().trim() && n.apellido.toLowerCase().trim() === e.apellido.toLowerCase().trim())) {
-            ninosUnicos.push(e);
-          }
-        });
-        setNinosManualEncontrados(ninosUnicos);
-      } else {
-        setNinosManualEncontrados([]);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setBuscandoManualTel(false);
-    }
-  };
 
   // Auxiliares de extracción
   const extraerTicket = (repInfo) => {
@@ -556,45 +498,6 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
             <h3 style={{ fontSize: '1rem', color: 'white', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <User size={18} /> Registro Manual Excepcional
             </h3>
-
-            {buscandoManualTel && (
-              <div style={{ fontSize: '0.82rem', color: 'var(--accent-primary)', marginBottom: '0.8rem' }}>
-                Buscando registros previos con este teléfono...
-              </div>
-            )}
-
-            {ninosManualEncontrados.length > 0 && (
-              <div style={{ background: 'rgba(59, 130, 246, 0.12)', border: '1px solid var(--accent-primary)', borderRadius: '8px', padding: '0.6rem 0.8rem', marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.82rem', color: '#93c5fd', fontWeight: 'bold', marginBottom: '0.35rem' }}>
-                  Niños encontrados con este teléfono:
-                </div>
-                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                  {ninosManualEncontrados.map(n => (
-                    <button
-                      key={n.id}
-                      type="button"
-                      onClick={() => {
-                        setNombre(n.nombre || '');
-                        setApellido(n.apellido || '');
-                        setGenero(n.genero || 'Niño');
-                        setFechaNacimiento(n.fecha_nacimiento || '');
-                      }}
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid var(--glass-border)',
-                        color: 'white',
-                        padding: '0.35rem 0.65rem',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '0.82rem'
-                      }}
-                    >
-                      {n.genero === 'Niña' ? '👧' : '👦'} {n.nombre} {n.apellido}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <div className="form-responsive-row">
               <div className="form-group">
