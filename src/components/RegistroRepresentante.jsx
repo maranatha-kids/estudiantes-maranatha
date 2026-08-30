@@ -20,6 +20,54 @@ function calcularEdad(fechaString) {
   return edad;
 }
 
+// Validar que el teléfono sea un número verosímil y no un placeholder (ej: 04240000000)
+function esTelefonoValido(codigo, numero) {
+  if (!numero || numero.length !== 7) return false;
+  if (numero === '0000000') return false;
+  if (/^(\d)\1{6}$/.test(numero)) return false;
+  if (numero === '1234567' || numero === '7654321' || numero === '0123456') return false;
+  const digitosUnicos = new Set(numero.split('')).size;
+  if (digitosUnicos < 3) return false;
+  return true;
+}
+
+function extraerDatosRepresentante(estudiante) {
+  let repStr = estudiante.nombre_representante || '';
+  let parentesco = 'Padre';
+
+  const matchParentesco = repStr.match(/\((Padre|Madre|Abuelo\/a|Tío\/a|Hermano\/a|Tutor Legal|Otro)/i);
+  if (matchParentesco) {
+    parentesco = matchParentesco[1].trim();
+  }
+
+  let nombreLimpio = repStr
+    .replace(/\([^)]*\)/g, '')
+    .replace(/Ticket:\s*#?\w+/gi, '')
+    .replace(/Salida:\s*[^)]+/gi, '')
+    .trim();
+
+  let nombre = '';
+  let apellido = estudiante.apellido_representante ? estudiante.apellido_representante.trim() : '';
+
+  if (nombreLimpio) {
+    const partes = nombreLimpio.split(/\s+/);
+    if (!apellido && partes.length > 1) {
+      nombre = partes[0];
+      apellido = partes.slice(1).join(' ');
+    } else if (!apellido) {
+      nombre = partes[0] || '';
+    } else {
+      nombre = partes[0] || '';
+    }
+  }
+
+  return {
+    nombre: nombre || '',
+    apellido: apellido || '',
+    parentesco: parentesco || 'Padre'
+  };
+}
+
 export default function RegistroRepresentante({ onVolverAlPanel, esPublico = false }) {
   // Datos del representante
   const [nombreRep, setNombreRep] = useState('');
@@ -28,6 +76,7 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
   const [numeroTelefono, setNumeroTelefono] = useState('');
   const [parentescoRep, setParentescoRep] = useState('Padre');
   const [otroParentesco, setOtroParentesco] = useState('');
+  const [autocompletadoExitoso, setAutocompletadoExitoso] = useState(false);
 
   const telefonoRep = `${codigoTelefono}${numeroTelefono}`;
 
@@ -47,6 +96,61 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
   useEffect(() => {
     comprobarCapacidad();
   }, []);
+
+  // Facilitar datos del representante por número de teléfono real
+  useEffect(() => {
+    if (numeroTelefono.length === 7 && esTelefonoValido(codigoTelefono, numeroTelefono)) {
+      buscarYCompletarRepresentante(codigoTelefono, numeroTelefono);
+    } else {
+      setAutocompletadoExitoso(false);
+    }
+  }, [codigoTelefono, numeroTelefono]);
+
+  const buscarYCompletarRepresentante = async (codigo, numero) => {
+    try {
+      const tel = `${codigo}${numero}`;
+      const { data, error } = await supabase
+        .from('estudiantes')
+        .select('nombre_representante, apellido_representante')
+        .eq('telefono_representante', tel)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        const datos = extraerDatosRepresentante(data[0]);
+        let huboCambio = false;
+
+        setNombreRep(prev => {
+          if (!prev.trim() && datos.nombre) {
+            huboCambio = true;
+            return datos.nombre;
+          }
+          return prev;
+        });
+
+        setApellidoRep(prev => {
+          if (!prev.trim() && datos.apellido) {
+            huboCambio = true;
+            return datos.apellido;
+          }
+          return prev;
+        });
+
+        if (datos.parentesco && ['Padre', 'Madre', 'Abuelo/a', 'Tío/a', 'Hermano/a', 'Tutor Legal'].includes(datos.parentesco)) {
+          setParentescoRep(prev => {
+            if (prev === 'Padre' && datos.parentesco) return datos.parentesco;
+            return prev;
+          });
+        }
+
+        if (huboCambio || datos.nombre) {
+          setAutocompletadoExitoso(true);
+        }
+      }
+    } catch (err) {
+      console.error('Error al autocompletar representante:', err);
+    }
+  };
 
   const comprobarCapacidad = async () => {
     try {
@@ -490,11 +594,15 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
                   style={{ flex: 1, minWidth: 0, width: '100%', padding: '0.65rem 0.6rem', fontSize: '0.95rem', letterSpacing: '0.5px' }}
                 />
               </div>
-              {numeroTelefono.length !== 7 && (
+              {numeroTelefono.length !== 7 ? (
                 <span style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: 'bold' }}>
                   {numeroTelefono.length === 0 ? '⚠️ Falta completar este campo' : `⚠️ Falta completar este campo (${numeroTelefono.length}/7 dígitos)`}
                 </span>
-              )}
+              ) : autocompletadoExitoso ? (
+                <span style={{ color: '#4ade80', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+                  ✓ Datos del representante completados por teléfono
+                </span>
+              ) : null}
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>

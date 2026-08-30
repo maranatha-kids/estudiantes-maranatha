@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import FormularioIngreso from './components/FormularioIngreso';
 import ListaEstudiantes from './components/ListaEstudiantes';
 import HistorialDomingos from './components/HistorialDomingos';
 import GraduacionAnimation from './components/GraduacionAnimation';
@@ -7,13 +6,12 @@ import RegistroRepresentante from './components/RegistroRepresentante';
 import ModalCerrarDia from './components/ModalCerrarDia';
 import ModalQR from './components/ModalQR';
 import ModalGraduados from './components/ModalGraduados';
-import { Sparkles, Archive, Users, QrCode, UserCheck, GraduationCap, Plus, ChevronLeft } from 'lucide-react';
+import { Sparkles, Archive, Users, QrCode, UserCheck, GraduationCap } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [vistaActiva, setVistaActiva] = useState('principal'); // 'principal', 'historial', 'registro-qr'
-  const [subVistaQR, setSubVistaQR] = useState('confirmar'); // 'confirmar' (formato anterior) o 'nuevo'
   const [isCerrando, setIsCerrando] = useState(false);
   const [graduacionData, setGraduacionData] = useState(null);
   const [mostrarModalQR, setMostrarModalQR] = useState(false);
@@ -213,67 +211,8 @@ function calcularEdad(fechaString) {
   // Si la vista es la del representante (por QR o navegación directa)
   if (vistaActiva === 'registro-qr') {
     return (
-      <div className="container" style={{ maxWidth: '650px', margin: '0 auto', padding: '1rem 0.5rem' }}>
-        {!esPublico && (
-          <button 
-            onClick={() => setVistaActiva('principal')}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', marginBottom: '1rem', fontSize: '0.95rem', fontWeight: 600 }}
-          >
-            <ChevronLeft size={20} /> Volver al Panel Principal
-          </button>
-        )}
-
-        {/* Pestañas para elegir entre Confirmar Llegada (formato anterior) o Nuevo Registro */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.2rem', background: 'rgba(255, 255, 255, 0.05)', padding: '5px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-          <button
-            onClick={() => setSubVistaQR('confirmar')}
-            style={{
-              flex: 1,
-              padding: '0.75rem 0.6rem',
-              borderRadius: '8px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.9rem',
-              background: subVistaQR === 'confirmar' ? 'var(--accent-primary)' : 'transparent',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.4rem',
-              transition: 'all 0.2s'
-            }}
-          >
-            <UserCheck size={18} /> Confirmar Asistencia (Ya registrado)
-          </button>
-          <button
-            onClick={() => setSubVistaQR('nuevo')}
-            style={{
-              flex: 1,
-              padding: '0.75rem 0.6rem',
-              borderRadius: '8px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.9rem',
-              background: subVistaQR === 'nuevo' ? 'var(--accent-primary)' : 'transparent',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.4rem',
-              transition: 'all 0.2s'
-            }}
-          >
-            <Plus size={18} /> Nuevo Registro (Primera vez)
-          </button>
-        </div>
-
-        {subVistaQR === 'confirmar' ? (
-          <FormularioIngreso onEstudianteAgregado={handleEstudianteAgregado} onGraduacion={handleGraduacion} />
-        ) : (
-          <RegistroRepresentante esPublico={esPublico} onVolverAlPanel={esPublico ? null : () => setVistaActiva('principal')} />
-        )}
+      <div className="container">
+        <RegistroRepresentante esPublico={esPublico} onVolverAlPanel={esPublico ? null : () => setVistaActiva('principal')} />
       </div>
     );
   }
@@ -370,9 +309,6 @@ function calcularEdad(fechaString) {
                   {isCerrando ? 'Cargando...' : 'Cerrar Día'}
                 </button>
               </div>
-            </div>
-            <div style={{ marginBottom: '2rem' }}>
-              <FormularioIngreso onEstudianteAgregado={handleEstudianteAgregado} onGraduacion={handleGraduacion} />
             </div>
             <ListaEstudiantes refreshTrigger={refreshTrigger} />
           </section>
