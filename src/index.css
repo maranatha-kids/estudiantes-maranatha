@@ -496,12 +496,20 @@ button.btn-primary:disabled {
   transition: background-color 0.15s ease;
 }
 
+.print-only-col {
+  display: none;
+}
+
 /* ===== ESTILOS PROFESIONALES DE IMPRESIÓN (@media print) ===== */
 @media print {
   /* Configuración de página */
   @page {
     size: landscape;
-    margin: 1cm;
+    margin: 0.8cm;
+  }
+
+  .print-only-col {
+    display: table-cell !important;
   }
 
   /* Ocultar elementos de interfaz no relevantes para la impresión */

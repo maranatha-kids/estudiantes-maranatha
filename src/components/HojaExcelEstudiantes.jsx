@@ -13,7 +13,9 @@ import {
   RefreshCw,
   Maximize2,
   Minimize2,
-  Calendar
+  Calendar,
+  X,
+  Info
 } from 'lucide-react';
 
 function calcularEdad(fechaString) {
@@ -90,6 +92,12 @@ export default function HojaExcelEstudiantes() {
   const [modoVista, setModoVista] = useState('matriz'); // 'matriz' | 'desglosado'
   const [fechaImpresion, setFechaImpresion] = useState('');
 
+  // Control Inteligente de Rango de Fechas para Pantalla e Impresión
+  const [alcanceFechas, setAlcanceFechas] = useState('ultimas-4'); // 'ultimas-4' | 'ultimas-8' | 'fecha-especifica' | 'sin-fechas' | 'todas'
+  const [fechaEspecifica, setFechaEspecifica] = useState('');
+  const [mostrarModalImpresion, setMostrarModalImpresion] = useState(false);
+  const [incluirFirmaEnImpresion, setIncluirFirmaEnImpresion] = useState(true);
+
   useEffect(() => {
     cargarDatos();
     const hoy = new Date();
@@ -131,18 +139,20 @@ export default function HojaExcelEstudiantes() {
           };
         }
         (h.estudiantes || []).forEach(e => {
-          // Guardar referencia por ID y por nombre normalizado
           if (e.id) mapaFechas[fechaStr].estudiantesMap.set(`id:${e.id}`, e);
           const claveNombre = `${(e.nombre || '').trim().toLowerCase()}_${(e.apellido || '').trim().toLowerCase()}`;
           mapaFechas[fechaStr].estudiantesMap.set(`name:${claveNombre}`, e);
         });
       });
 
-      // Ordenar fechas cronológicamente descendente (las más recientes primero)
+      // Ordenar fechas cronológicamente descendente
       const fechasArray = Object.values(mapaFechas).sort((a, b) => b.fecha.localeCompare(a.fecha));
 
       setEstudiantes(dataEstudiantes || []);
       setHistorialFechas(fechasArray);
+      if (fechasArray.length > 0) {
+        setFechaEspecifica(fechasArray[0].fecha);
+      }
     } catch (err) {
       console.error('Error cargando datos para hoja de cálculo:', err);
       alert('Error al cargar datos: ' + err.message);
@@ -155,12 +165,10 @@ export default function HojaExcelEstudiantes() {
   const verificarAsistencia = (estudiante, fechaObj) => {
     if (!fechaObj || !fechaObj.estudiantesMap) return null;
     
-    // Primero buscar por ID exacto
     if (estudiante.id && fechaObj.estudiantesMap.has(`id:${estudiante.id}`)) {
       return fechaObj.estudiantesMap.get(`id:${estudiante.id}`);
     }
     
-    // Si no, buscar por nombre y apellido normalizados
     const claveNombre = `${(estudiante.nombre || '').trim().toLowerCase()}_${(estudiante.apellido || '').trim().toLowerCase()}`;
     if (fechaObj.estudiantesMap.has(`name:${claveNombre}`)) {
       return fechaObj.estudiantesMap.get(`name:${claveNombre}`);
@@ -168,6 +176,24 @@ export default function HojaExcelEstudiantes() {
 
     return null;
   };
+
+  // Fechas activas según el alcance seleccionado (evita saturación horizontal)
+  const fechasSeleccionadas = useMemo(() => {
+    if (alcanceFechas === 'ultimas-4') {
+      return historialFechas.slice(0, 4);
+    }
+    if (alcanceFechas === 'ultimas-8') {
+      return historialFechas.slice(0, 8);
+    }
+    if (alcanceFechas === 'fecha-especifica') {
+      const encontrada = historialFechas.find(f => f.fecha === fechaEspecifica);
+      return encontrada ? [encontrada] : historialFechas.slice(0, 1);
+    }
+    if (alcanceFechas === 'sin-fechas') {
+      return [];
+    }
+    return historialFechas; // 'todas'
+  }, [historialFechas, alcanceFechas, fechaEspecifica]);
 
   // Procesar estudiantes calculando asistencias por fecha
   const estudiantesProcesados = useMemo(() => {
@@ -198,7 +224,6 @@ export default function HojaExcelEstudiantes() {
         }
       });
 
-      // Incluir también si está activo el domingo actual
       const asistioHoy = Boolean(est.activo_este_domingo);
 
       const porcentajeAsistencia = historialFechas.length > 0 
@@ -266,9 +291,15 @@ export default function HojaExcelEstudiantes() {
         if (est.salon_actual === 'Graduado' || est.edadCalculada > 12) return false;
       }
 
+      // Si se filtró por una fecha específica y el usuario quiere ver solo los que asistieron en esa fecha:
+      if (alcanceFechas === 'fecha-especifica' && filtroEstado === 'asistieron_esta_fecha') {
+        const asist = est.asistenciasPorFecha[fechaEspecifica];
+        if (!asist || !asist.asistio) return false;
+      }
+
       return true;
     });
-  }, [estudiantesProcesados, busqueda, filtroSalon, filtroGenero, filtroEstado]);
+  }, [estudiantesProcesados, busqueda, filtroSalon, filtroGenero, filtroEstado, alcanceFechas, fechaEspecifica]);
 
   // Manejo de expansión de filas
   const toggleFila = (id) => {
@@ -292,15 +323,17 @@ export default function HojaExcelEstudiantes() {
     setFilasExpandidas(new Set());
   };
 
-  // Impresión nativa
-  const handleImprimir = () => {
-    window.print();
+  // Lanzar diálogo de impresión nativo
+  const ejecutarImpresion = () => {
+    setMostrarModalImpresion(false);
+    setTimeout(() => {
+      window.print();
+    }, 150);
   };
 
   // Exportar a Excel (CSV con UTF-8 BOM)
   const handleExportarExcel = () => {
     try {
-      // Encabezados de columnas
       const headers = [
         'N°',
         'Nombre',
@@ -321,7 +354,6 @@ export default function HojaExcelEstudiantes() {
         ...historialFechas.map(f => `Asistencia ${formatearFechaCompleta(f.fecha)}`)
       ];
 
-      // Filas de datos
       const rows = estudiantesFiltrados.map((est, index) => {
         const filaFechas = historialFechas.map(f => {
           const asist = est.asistenciasPorFecha[f.fecha];
@@ -352,7 +384,6 @@ export default function HojaExcelEstudiantes() {
         ];
       });
 
-      // Crear contenido CSV con BOM para soporte de caracteres en Excel (tildes, eñes)
       const csvContent = '\uFEFF' + [
         headers.join(';'),
         ...rows.map(r => r.join(';'))
@@ -379,6 +410,15 @@ export default function HojaExcelEstudiantes() {
   const totalNinos = estudiantesFiltrados.filter(e => e.genero === 'Niño').length;
   const totalNinas = estudiantesFiltrados.filter(e => e.genero === 'Niña').length;
 
+  // Texto descriptivo del alcance de fechas para el membrete impreso
+  const textoAlcanceImpresion = useMemo(() => {
+    if (alcanceFechas === 'ultimas-4') return 'Reporte Mensual (Últimas 4 semanas evaluadas)';
+    if (alcanceFechas === 'ultimas-8') return 'Reporte Bimestral (Últimas 8 semanas evaluadas)';
+    if (alcanceFechas === 'fecha-especifica') return `Control de Asistencia del Domingo ${formatearFechaCompleta(fechaEspecifica)}`;
+    if (alcanceFechas === 'sin-fechas') return 'Directorio General de Estudiantes (Sin columnas de fechas)';
+    return `Histórico General (${historialFechas.length} fechas registradas)`;
+  }, [alcanceFechas, fechaEspecifica, historialFechas]);
+
   if (loading) {
     return (
       <div className="glass-panel" style={{ textAlign: 'center', padding: '3rem' }}>
@@ -394,19 +434,28 @@ export default function HojaExcelEstudiantes() {
       
       {/* ================= ENCABEZADO EXCLUSIVO PARA IMPRESIÓN ================= */}
       <div className="print-only-header">
-        <div style={{ borderBottom: '2px solid #000', paddingBottom: '10px', marginBottom: '15px' }}>
-          <h1 style={{ margin: 0, fontSize: '18pt', color: '#000', fontWeight: 'bold' }}>
-            Maranatha Kids — Planilla General de Estudiantes
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: '9pt', color: '#333' }}>
-            Reporte de Base de Datos y Matriz de Asistencias | Fecha: {fechaImpresion}
-          </p>
-          <div style={{ marginTop: '6px', fontSize: '8.5pt', color: '#222', display: 'flex', gap: '15px' }}>
-            <span><strong>Total Estudiantes:</strong> {estudiantesFiltrados.length}</span>
+        <div style={{ borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: '16pt', color: '#000', fontWeight: 'bold' }}>
+                Maranatha Kids — Planilla Oficial de Estudiantes y Asistencia
+              </h1>
+              <p style={{ margin: '3px 0 0', fontSize: '9pt', color: '#333', fontWeight: 600 }}>
+                {textoAlcanceImpresion}
+              </p>
+            </div>
+            <div style={{ textAlign: 'right', fontSize: '8pt', color: '#555' }}>
+              <div>Fecha de Emisión: {fechaImpresion}</div>
+              <div>Página de Control Administrativo</div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '6px', fontSize: '8pt', color: '#222', display: 'flex', gap: '16px', flexWrap: 'wrap', borderTop: '1px dotted #ccc', paddingTop: '4px' }}>
+            <span><strong>Total Estudiantes Listados:</strong> {estudiantesFiltrados.length}</span>
             <span><strong>Niños:</strong> {totalNinos}</span>
             <span><strong>Niñas:</strong> {totalNinas}</span>
             <span><strong>Activos Hoy:</strong> {totalActivosHoy}</span>
-            <span><strong>Domingos en Historial:</strong> {historialFechas.length}</span>
+            <span><strong>Columnas de Fecha Impresas:</strong> {fechasSeleccionadas.length}</span>
           </div>
         </div>
       </div>
@@ -430,7 +479,7 @@ export default function HojaExcelEstudiantes() {
                 Planilla Tipo Excel de Estudiantes
               </h2>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Visualización tabular, desglose ficha a ficha y control de asistencias por fecha
+                Visualización tabular, desglose completo y matriz de asistencia con control de fechas
               </span>
             </div>
           </div>
@@ -438,25 +487,26 @@ export default function HojaExcelEstudiantes() {
           {/* Acciones Principales: Imprimir, Exportar, Recargar */}
           <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
             <button
-              onClick={handleImprimir}
+              onClick={() => setMostrarModalImpresion(true)}
               className="btn-secondary"
               style={{
-                background: 'rgba(59, 130, 246, 0.15)',
-                border: '1px solid var(--accent-primary)',
+                background: 'rgba(59, 130, 246, 0.2)',
+                border: '1.5px solid var(--accent-primary)',
                 color: 'white',
-                padding: '0.55rem 1rem',
+                padding: '0.55rem 1.1rem',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                fontWeight: 600,
-                fontSize: '0.9rem'
+                gap: '0.5rem',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)'
               }}
-              title="Imprimir planilla o guardar en PDF"
+              title="Abrir opciones de impresión optimizada para papel o PDF"
             >
-              <Printer size={16} color="var(--accent-primary)" />
-              Imprimir Planilla
+              <Printer size={17} color="var(--accent-primary)" />
+              Opciones de Impresión
             </button>
 
             <button
@@ -475,10 +525,10 @@ export default function HojaExcelEstudiantes() {
                 fontWeight: 600,
                 fontSize: '0.9rem'
               }}
-              title="Descargar archivo .CSV compatible con Microsoft Excel"
+              title="Descargar archivo .CSV con todas las fechas compatible con Excel"
             >
               <Download size={16} />
-              Descargar Excel (.csv)
+              Exportar a Excel (.csv)
             </button>
 
             <button
@@ -504,25 +554,25 @@ export default function HojaExcelEstudiantes() {
         {/* Resumen de Estadísticas Rápidas (Cintas Excel) */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
           gap: '0.75rem',
           marginBottom: '1rem'
         }}>
           <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Registrados</span>
-            <strong style={{ fontSize: '1.4rem', color: 'white' }}>{estudiantes.length}</strong>
+            <strong style={{ fontSize: '1.35rem', color: 'white' }}>{estudiantes.length}</strong>
           </div>
           <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Listados Filtrados</span>
-            <strong style={{ fontSize: '1.4rem', color: 'var(--accent-primary)' }}>{estudiantesFiltrados.length}</strong>
+            <strong style={{ fontSize: '1.35rem', color: 'var(--accent-primary)' }}>{estudiantesFiltrados.length}</strong>
           </div>
           <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Activos Hoy</span>
-            <strong style={{ fontSize: '1.4rem', color: '#4ade80' }}>{totalActivosHoy}</strong>
+            <strong style={{ fontSize: '1.35rem', color: '#4ade80' }}>{totalActivosHoy}</strong>
           </div>
           <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Domingos en Historial</span>
-            <strong style={{ fontSize: '1.4rem', color: '#facc15' }}>{historialFechas.length}</strong>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Domingos Registrados</span>
+            <strong style={{ fontSize: '1.35rem', color: '#facc15' }}>{historialFechas.length}</strong>
           </div>
           <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Género</span>
@@ -532,13 +582,13 @@ export default function HojaExcelEstudiantes() {
           </div>
         </div>
 
-        {/* Barra de Filtros, Búsqueda y Selector de Modo */}
+        {/* Barra de Filtros, Búsqueda y Rango de Fechas */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
             
             {/* Buscador Universal */}
-            <div style={{ position: 'relative', flex: '1 1 280px' }}>
+            <div style={{ position: 'relative', flex: '1 1 260px' }}>
               <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input
                 type="text"
@@ -566,8 +616,46 @@ export default function HojaExcelEstudiantes() {
               )}
             </div>
 
+            {/* Selector de Alcance de Fechas en Pantalla (Protege de saturación) */}
+            <div style={{ minWidth: '210px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <label style={{ fontSize: '0.72rem', color: '#93c5fd', margin: 0, fontWeight: 600 }}>
+                📅 Columnas de Domingo a Mostrar:
+              </label>
+              <select
+                value={alcanceFechas}
+                onChange={e => setAlcanceFechas(e.target.value)}
+                style={{ padding: '0.55rem 0.8rem', fontSize: '0.85rem', borderColor: 'rgba(59, 130, 246, 0.4)' }}
+              >
+                <option value="ultimas-4">Últimas 4 semanas (1 mes) — Recomendado</option>
+                <option value="ultimas-8">Últimas 8 semanas (2 meses)</option>
+                <option value="fecha-especifica">Solo 1 domingo específico...</option>
+                <option value="sin-fechas">Sin columnas de fechas (Solo directorio)</option>
+                <option value="todas">Todas las fechas registradas ({historialFechas.length})</option>
+              </select>
+            </div>
+
+            {/* Sub-selector si eligió fecha específica */}
+            {alcanceFechas === 'fecha-especifica' && (
+              <div style={{ minWidth: '170px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <label style={{ fontSize: '0.72rem', color: '#facc15', margin: 0, fontWeight: 600 }}>
+                  Elegir Domingo:
+                </label>
+                <select
+                  value={fechaEspecifica}
+                  onChange={e => setFechaEspecifica(e.target.value)}
+                  style={{ padding: '0.55rem 0.8rem', fontSize: '0.85rem', borderColor: '#facc15' }}
+                >
+                  {historialFechas.map(f => (
+                    <option key={f.fecha} value={f.fecha}>
+                      {formatearFechaCompleta(f.fecha)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Filtro Salón */}
-            <div style={{ minWidth: '150px' }}>
+            <div style={{ minWidth: '140px' }}>
               <select
                 value={filtroSalon}
                 onChange={e => setFiltroSalon(e.target.value)}
@@ -580,13 +668,13 @@ export default function HojaExcelEstudiantes() {
             </div>
 
             {/* Filtro Género */}
-            <div style={{ minWidth: '120px' }}>
+            <div style={{ minWidth: '110px' }}>
               <select
                 value={filtroGenero}
                 onChange={e => setFiltroGenero(e.target.value)}
                 style={{ padding: '0.65rem 0.8rem', fontSize: '0.85rem' }}
               >
-                <option value="todos">Todos los géneros</option>
+                <option value="todos">Géneros: Todos</option>
                 <option value="Niño">Niños</option>
                 <option value="Niña">Niñas</option>
               </select>
@@ -601,6 +689,9 @@ export default function HojaExcelEstudiantes() {
               >
                 <option value="todos">Todos los estados</option>
                 <option value="activos_hoy">Activos hoy</option>
+                {alcanceFechas === 'fecha-especifica' && (
+                  <option value="asistieron_esta_fecha">Asistieron esta fecha</option>
+                )}
                 <option value="regulares">Regulares</option>
                 <option value="graduados">Graduados</option>
               </select>
@@ -609,9 +700,9 @@ export default function HojaExcelEstudiantes() {
           </div>
 
           {/* Controles de Vista y Desglose Masivo */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.3rem' }}>
             
-            {/* Alternador de Vista: Matriz vs Desglose */}
+            {/* Alternador de Vista */}
             <div style={{ display: 'inline-flex', background: 'rgba(15, 23, 42, 0.8)', padding: '3px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
               <button
                 onClick={() => setModoVista('matriz')}
@@ -619,17 +710,17 @@ export default function HojaExcelEstudiantes() {
                   background: modoVista === 'matriz' ? 'var(--accent-gradient)' : 'transparent',
                   color: modoVista === 'matriz' ? 'white' : 'var(--text-secondary)',
                   border: 'none',
-                  padding: '0.4rem 0.9rem',
+                  padding: '0.4rem 0.85rem',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: '0.85rem',
+                  fontSize: '0.82rem',
                   fontWeight: 600,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '5px'
                 }}
               >
-                <FileSpreadsheet size={15} /> Matriz de Asistencias (Hoja)
+                <FileSpreadsheet size={15} /> Matriz ({fechasSeleccionadas.length} domingos)
               </button>
               <button
                 onClick={() => setModoVista('desglosado')}
@@ -637,19 +728,26 @@ export default function HojaExcelEstudiantes() {
                   background: modoVista === 'desglosado' ? 'var(--accent-gradient)' : 'transparent',
                   color: modoVista === 'desglosado' ? 'white' : 'var(--text-secondary)',
                   border: 'none',
-                  padding: '0.4rem 0.9rem',
+                  padding: '0.4rem 0.85rem',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: '0.85rem',
+                  fontSize: '0.82rem',
                   fontWeight: 600,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '5px'
                 }}
               >
-                <Users size={15} /> Fichas Desglosadas Detalladas
+                <Users size={15} /> Fichas Desglosadas
               </button>
             </div>
+
+            {/* Aviso amigable si hay muchas columnas en pantalla */}
+            {fechasSeleccionadas.length > 8 && (
+              <div style={{ fontSize: '0.78rem', color: '#fde047', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Info size={14} /> Tienes {fechasSeleccionadas.length} columnas. Para imprimir en papel recomendamos 4 u 8 semanas.
+              </div>
+            )}
 
             {/* Acciones de Desglose rápido */}
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -659,10 +757,10 @@ export default function HojaExcelEstudiantes() {
                   background: 'transparent',
                   border: '1px solid var(--glass-border)',
                   color: 'white',
-                  padding: '0.4rem 0.75rem',
+                  padding: '0.35rem 0.7rem',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: '0.8rem',
+                  fontSize: '0.78rem',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px'
@@ -677,10 +775,10 @@ export default function HojaExcelEstudiantes() {
                   background: 'transparent',
                   border: '1px solid var(--glass-border)',
                   color: 'var(--text-secondary)',
-                  padding: '0.4rem 0.75rem',
+                  padding: '0.35rem 0.7rem',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: '0.8rem',
+                  fontSize: '0.78rem',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px'
@@ -714,39 +812,46 @@ export default function HojaExcelEstudiantes() {
               {/* ENCABEZADOS DE LA TABLA (ESTILO EXCEL) */}
               <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#0a0f1d' }}>
                 <tr style={{ borderBottom: '2px solid rgba(59, 130, 246, 0.3)', color: '#93c5fd' }}>
-                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', width: '40px' }} className="no-print">#</th>
-                  <th style={{ padding: '0.75rem 0.5rem', width: '35px', textAlign: 'center' }} className="no-print">Ver</th>
-                  <th style={{ padding: '0.75rem 0.75rem', minWidth: '170px' }}>Estudiante</th>
-                  <th style={{ padding: '0.75rem 0.5rem', minWidth: '65px', textAlign: 'center' }}>Edad</th>
-                  <th style={{ padding: '0.75rem 0.5rem', minWidth: '55px', textAlign: 'center' }}>Sexo</th>
-                  <th style={{ padding: '0.75rem 0.75rem', minWidth: '110px' }}>Salón</th>
-                  <th style={{ padding: '0.75rem 0.75rem', minWidth: '150px' }}>Representante</th>
-                  <th style={{ padding: '0.75rem 0.5rem', minWidth: '110px' }}>Teléfono</th>
-                  <th style={{ padding: '0.75rem 0.5rem', minWidth: '95px' }}>Salida</th>
-                  <th style={{ padding: '0.75rem 0.5rem', minWidth: '75px', textAlign: 'center' }}>Hoy</th>
-                  <th style={{ padding: '0.75rem 0.5rem', minWidth: '85px', textAlign: 'center' }}>Total Asist.</th>
+                  <th style={{ padding: '0.7rem 0.4rem', textAlign: 'center', width: '35px' }} className="no-print">#</th>
+                  <th style={{ padding: '0.7rem 0.3rem', width: '30px', textAlign: 'center' }} className="no-print">Ver</th>
+                  <th style={{ padding: '0.7rem 0.6rem', minWidth: '170px' }}>Estudiante</th>
+                  <th style={{ padding: '0.7rem 0.4rem', minWidth: '55px', textAlign: 'center' }}>Edad</th>
+                  <th style={{ padding: '0.7rem 0.4rem', minWidth: '50px', textAlign: 'center' }}>Sexo</th>
+                  <th style={{ padding: '0.7rem 0.6rem', minWidth: '110px' }}>Salón</th>
+                  <th style={{ padding: '0.7rem 0.6rem', minWidth: '150px' }}>Representante</th>
+                  <th style={{ padding: '0.7rem 0.5rem', minWidth: '105px' }}>Teléfono</th>
+                  <th style={{ padding: '0.7rem 0.5rem', minWidth: '95px' }}>Salida</th>
+                  <th style={{ padding: '0.7rem 0.4rem', minWidth: '70px', textAlign: 'center' }}>Hoy</th>
+                  <th style={{ padding: '0.7rem 0.4rem', minWidth: '80px', textAlign: 'center' }}>Total Asist.</th>
 
-                  {/* COLUMNAS DINÁMICAS DE CADA FECHA EN EL HISTORIAL */}
-                  {modoVista === 'matriz' && historialFechas.map(f => (
+                  {/* COLUMNAS DINÁMICAS DE LAS FECHAS SELECCIONADAS */}
+                  {modoVista === 'matriz' && fechasSeleccionadas.map(f => (
                     <th 
                       key={f.fecha} 
                       style={{ 
-                        padding: '0.75rem 0.5rem', 
+                        padding: '0.7rem 0.4rem', 
                         minWidth: '75px', 
                         textAlign: 'center',
-                        background: 'rgba(30, 41, 59, 0.7)',
+                        background: 'rgba(30, 41, 59, 0.75)',
                         borderLeft: '1px solid rgba(255, 255, 255, 0.07)'
                       }}
                       title={`Fecha: ${formatearFechaCompleta(f.fecha)}`}
                     >
                       <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>{formatearFechaCorta(f.fecha)}</div>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 400 }}>Domingo</div>
+                      <div style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', fontWeight: 400 }}>Domingo</div>
                     </th>
                   ))}
+
+                  {/* Columna opcional para impresión de 1 solo domingo: Firma / Observación */}
+                  {alcanceFechas === 'fecha-especifica' && incluirFirmaEnImpresion && (
+                    <th style={{ padding: '0.7rem 0.6rem', minWidth: '130px', textAlign: 'center' }} className="print-only-col">
+                      Firma de Retiro / Tutor
+                    </th>
+                  )}
                 </tr>
               </thead>
 
-              {/* CUERPO DE LA TABLA CON CADA ESTUDIANTE */}
+              {/* CUERPO DE LA TABLA */}
               <tbody>
                 {estudiantesFiltrados.map((est, index) => {
                   const estaExpandida = filasExpandidas.has(est.id) || modoVista === 'desglosado';
@@ -765,31 +870,31 @@ export default function HojaExcelEstudiantes() {
                         }}
                       >
                         {/* Índice # */}
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem' }} className="no-print">
+                        <td style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.78rem' }} className="no-print">
                           {index + 1}
                         </td>
 
                         {/* Flecha Desplegable */}
-                        <td style={{ padding: '0.65rem 0.3rem', textAlign: 'center' }} className="no-print">
+                        <td style={{ padding: '0.6rem 0.2rem', textAlign: 'center' }} className="no-print">
                           {estaExpandida ? (
-                            <ChevronDown size={16} color="var(--accent-primary)" />
+                            <ChevronDown size={15} color="var(--accent-primary)" />
                           ) : (
-                            <ChevronRight size={16} color="var(--text-secondary)" />
+                            <ChevronRight size={15} color="var(--text-secondary)" />
                           )}
                         </td>
 
                         {/* Estudiante (Nombre y Apellido) */}
-                        <td style={{ padding: '0.65rem 0.75rem', fontWeight: 600, color: 'white' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <td style={{ padding: '0.6rem 0.6rem', fontWeight: 600, color: 'white' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                             <span>{est.nombre} {est.apellido}</span>
                             {est.ticketActual && (
                               <span style={{ 
                                 background: 'rgba(59, 130, 246, 0.18)', 
                                 color: '#93c5fd', 
                                 border: '1px solid rgba(59, 130, 246, 0.4)',
-                                padding: '1px 5px', 
+                                padding: '1px 4px', 
                                 borderRadius: '4px', 
-                                fontSize: '0.72rem',
+                                fontSize: '0.7rem',
                                 fontWeight: 700
                               }}>
                                 #{est.ticketActual}
@@ -799,16 +904,16 @@ export default function HojaExcelEstudiantes() {
                         </td>
 
                         {/* Edad */}
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: 'white' }}>
+                        <td style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: 'white' }}>
                           <strong>{est.edadCalculada}</strong>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginLeft: '2px' }}>años</span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginLeft: '2px' }}>a</span>
                         </td>
 
                         {/* Género */}
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                        <td style={{ padding: '0.6rem 0.4rem', textAlign: 'center' }}>
                           <span style={{
-                            fontSize: '0.75rem',
-                            padding: '2px 6px',
+                            fontSize: '0.72rem',
+                            padding: '2px 5px',
                             borderRadius: '4px',
                             background: est.genero === 'Niña' ? 'rgba(236, 72, 153, 0.18)' : 'rgba(59, 130, 246, 0.18)',
                             color: est.genero === 'Niña' ? '#f472b6' : '#60a5fa',
@@ -819,10 +924,10 @@ export default function HojaExcelEstudiantes() {
                         </td>
 
                         {/* Salón Actual */}
-                        <td style={{ padding: '0.65rem 0.75rem' }}>
+                        <td style={{ padding: '0.6rem 0.6rem' }}>
                           <span style={{
-                            fontSize: '0.75rem',
-                            padding: '2px 8px',
+                            fontSize: '0.72rem',
+                            padding: '2px 7px',
                             borderRadius: '12px',
                             fontWeight: 500,
                             background: esGraduado ? 'rgba(234, 179, 8, 0.15)' : 'rgba(59, 130, 246, 0.15)',
@@ -830,26 +935,26 @@ export default function HojaExcelEstudiantes() {
                             border: `1px solid ${esGraduado ? 'rgba(234, 179, 8, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            gap: '3px'
                           }}>
-                            {esGraduado && <GraduationCap size={12} color="#eab308" />}
+                            {esGraduado && <GraduationCap size={11} color="#eab308" />}
                             {est.salon_actual || 'Usos Múltiples'}
                           </span>
                         </td>
 
                         {/* Representante */}
-                        <td style={{ padding: '0.65rem 0.75rem', color: '#e2e8f0' }}>
+                        <td style={{ padding: '0.6rem 0.6rem', color: '#e2e8f0' }}>
                           <div>{est.repLimpio || 'No registrado'}</div>
                           {est.parentesco && est.parentesco !== 'Representante' && (
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>({est.parentesco})</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>({est.parentesco})</span>
                           )}
                         </td>
 
                         {/* Teléfono */}
-                        <td style={{ padding: '0.65rem 0.5rem', color: 'var(--text-secondary)' }}>
+                        <td style={{ padding: '0.6rem 0.5rem', color: 'var(--text-secondary)' }}>
                           {est.telefono_representante ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.8rem', color: '#cbd5e1' }}>
-                              <Phone size={12} color="var(--accent-primary)" />
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.78rem', color: '#cbd5e1' }}>
+                              <Phone size={11} color="var(--accent-primary)" />
                               {est.telefono_representante}
                             </span>
                           ) : (
@@ -858,10 +963,10 @@ export default function HojaExcelEstudiantes() {
                         </td>
 
                         {/* Modo de Salida */}
-                        <td style={{ padding: '0.65rem 0.5rem' }}>
+                        <td style={{ padding: '0.6rem 0.5rem' }}>
                           <span style={{
-                            fontSize: '0.72rem',
-                            padding: '2px 6px',
+                            fontSize: '0.7rem',
+                            padding: '2px 5px',
                             borderRadius: '4px',
                             background: est.modoSalida === 'Se va solo/a' ? 'rgba(234, 179, 8, 0.18)' : 'rgba(100, 116, 139, 0.18)',
                             color: est.modoSalida === 'Se va solo/a' ? '#fde047' : '#94a3b8'
@@ -871,34 +976,34 @@ export default function HojaExcelEstudiantes() {
                         </td>
 
                         {/* Hoy (Activo) */}
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                        <td style={{ padding: '0.6rem 0.4rem', textAlign: 'center' }}>
                           {est.asistioHoy ? (
                             <span style={{ 
                               background: 'rgba(34, 197, 94, 0.2)', 
                               color: '#4ade80', 
                               border: '1px solid rgba(34, 197, 94, 0.4)',
-                              padding: '2px 6px', 
+                              padding: '2px 5px', 
                               borderRadius: '4px', 
-                              fontSize: '0.75rem',
+                              fontSize: '0.72rem',
                               fontWeight: 'bold' 
                             }}>
                               ✓ Presente
                             </span>
                           ) : (
-                            <span style={{ color: '#64748b', fontSize: '0.85rem' }}>—</span>
+                            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>—</span>
                           )}
                         </td>
 
                         {/* Total Asistencias / % */}
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                        <td style={{ padding: '0.6rem 0.4rem', textAlign: 'center' }}>
                           <span style={{ fontWeight: 'bold', color: 'white' }}>{est.totalAsistencias}</span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginLeft: '3px' }}>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginLeft: '3px' }}>
                             ({est.porcentajeAsistencia}%)
                           </span>
                         </td>
 
-                        {/* CELDAS DINÁMICAS DE ASISTENCIA POR FECHA */}
-                        {modoVista === 'matriz' && historialFechas.map(f => {
+                        {/* CELDAS DINÁMICAS DE LAS FECHAS SELECCIONADAS */}
+                        {modoVista === 'matriz' && fechasSeleccionadas.map(f => {
                           const asist = est.asistenciasPorFecha[f.fecha];
                           const asistio = asist && asist.asistio;
 
@@ -919,34 +1024,41 @@ export default function HojaExcelEstudiantes() {
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '22px',
-                                    height: '22px',
+                                    width: '20px',
+                                    height: '20px',
                                     borderRadius: '50%',
                                     background: 'rgba(34, 197, 94, 0.2)',
                                     color: '#4ade80',
                                     fontWeight: 'bold',
-                                    fontSize: '0.8rem'
+                                    fontSize: '0.75rem'
                                   }}>
                                     ✓
                                   </span>
                                   {asist.ticket && (
-                                    <span style={{ fontSize: '0.65rem', color: '#86efac', marginTop: '1px' }}>
+                                    <span style={{ fontSize: '0.62rem', color: '#86efac', marginTop: '1px' }}>
                                       #{asist.ticket}
                                     </span>
                                   )}
                                 </div>
                               ) : (
-                                <span style={{ color: '#475569', fontSize: '0.9rem' }}>—</span>
+                                <span style={{ color: '#475569', fontSize: '0.85rem' }}>—</span>
                               )}
                             </td>
                           );
                         })}
+
+                        {/* Espacio para firma manuscrita si es domingo específico */}
+                        {alcanceFechas === 'fecha-especifica' && incluirFirmaEnImpresion && (
+                          <td style={{ borderLeft: '1px dashed #ccc', height: '26px' }} className="print-only-col">
+                            {/* Celda vacía para firma en hoja de papel */}
+                          </td>
+                        )}
                       </tr>
 
-                      {/* ================= FILA EXPANDIDA: DESGLOSE COMPLETO DE CADA ESTUDIANTE ================= */}
+                      {/* ================= FILA EXPANDIDA: DESGLOSE COMPLETO ================= */}
                       {estaExpandida && (
                         <tr className="excel-expanded-card-row">
-                          <td colSpan={11 + (modoVista === 'matriz' ? historialFechas.length : 0)} style={{ padding: '0.75rem 1.25rem', background: 'rgba(15, 23, 42, 0.75)', borderBottom: '2px solid var(--accent-primary)' }}>
+                          <td colSpan={11 + (modoVista === 'matriz' ? fechasSeleccionadas.length : 0) + (alcanceFechas === 'fecha-especifica' && incluirFirmaEnImpresion ? 1 : 0)} style={{ padding: '0.75rem 1.25rem', background: 'rgba(15, 23, 42, 0.75)', borderBottom: '2px solid var(--accent-primary)' }}>
                             <div style={{
                               background: 'rgba(2, 6, 23, 0.6)',
                               borderRadius: '8px',
@@ -957,7 +1069,7 @@ export default function HojaExcelEstudiantes() {
                               gap: '1rem'
                             }}>
                               
-                              {/* Tarjeta 1: Datos Personales del Estudiante */}
+                              {/* Tarjeta 1: Datos Personales */}
                               <div style={{ borderRight: '1px solid rgba(255, 255, 255, 0.08)', paddingRight: '1rem' }}>
                                 <h4 style={{ fontSize: '0.85rem', color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   <Users size={14} /> Ficha del Estudiante
@@ -972,7 +1084,7 @@ export default function HojaExcelEstudiantes() {
                                 </div>
                               </div>
 
-                              {/* Tarjeta 2: Datos del Representante y Seguridad */}
+                              {/* Tarjeta 2: Representante */}
                               <div style={{ borderRight: '1px solid rgba(255, 255, 255, 0.08)', paddingRight: '1rem' }}>
                                 <h4 style={{ fontSize: '0.85rem', color: '#4ade80', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   <Phone size={14} /> Contacto y Retiro
@@ -1004,10 +1116,10 @@ export default function HojaExcelEstudiantes() {
                                 </div>
                               </div>
 
-                              {/* Tarjeta 3: Resumen y Desglose de Asistencias */}
+                              {/* Tarjeta 3: Historial */}
                               <div>
                                 <h4 style={{ fontSize: '0.85rem', color: '#facc15', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <Calendar size={14} /> Historial de Asistencias ({est.totalAsistencias} / {historialFechas.length})
+                                  <Calendar size={14} /> Historial Cronológico ({est.totalAsistencias} / {historialFechas.length})
                                 </h4>
                                 {historialFechas.length === 0 ? (
                                   <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>No hay domingos archivados en el historial aún.</p>
@@ -1054,8 +1166,241 @@ export default function HojaExcelEstudiantes() {
 
           {/* Pie de tabla con resumen de registros */}
           <div style={{ padding: '0.75rem 1.25rem', background: '#0a0f1d', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <span>Mostrando <strong>{estudiantesFiltrados.length}</strong> de <strong>{estudiantes.length}</strong> estudiantes</span>
+            <span>Mostrando <strong>{estudiantesFiltrados.length}</strong> de <strong>{estudiantes.length}</strong> estudiantes ({fechasSeleccionadas.length} domingos en vista)</span>
             <span>Tip: Haz clic sobre cualquier fila para desglosar y ver la ficha individual.</span>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL INTELIGENTE DE OPCIONES DE IMPRESIÓN ================= */}
+      {mostrarModalImpresion && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '560px',
+            width: '100%',
+            border: '1px solid var(--accent-primary)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+            animation: 'fadeIn 0.2s ease-out'
+          }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Printer size={22} color="var(--accent-primary)" />
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Opciones de Impresión Profesional</h3>
+              </div>
+              <button
+                onClick={() => setMostrarModalImpresion(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.2rem' }}>
+              Selecciona el formato ideal para que la hoja quede <strong>nítida, espaciosa y sin desbordarse</strong> en papel físico o PDF:
+            </p>
+
+            {/* Opciones de Formato */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              
+              {/* Opción 1: Mes actual (4 semanas) */}
+              <label 
+                onClick={() => setAlcanceFechas('ultimas-4')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                  padding: '0.8rem 1rem',
+                  borderRadius: '8px',
+                  background: alcanceFechas === 'ultimas-4' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(15, 23, 42, 0.5)',
+                  border: `1.5px solid ${alcanceFechas === 'ultimas-4' ? 'var(--accent-primary)' : 'var(--glass-border)'}`,
+                  cursor: 'pointer'
+                }}
+              >
+                <input 
+                  type="radio" 
+                  name="print-scope" 
+                  checked={alcanceFechas === 'ultimas-4'} 
+                  onChange={() => setAlcanceFechas('ultimas-4')}
+                  style={{ marginTop: '3px', width: 'auto' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <strong style={{ color: 'white', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    📊 Planilla Mensual (Últimas 4 semanas)
+                    <span style={{ fontSize: '0.7rem', background: '#107c41', color: 'white', padding: '1px 6px', borderRadius: '4px' }}>Recomendado</span>
+                  </strong>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
+                    Ajuste perfecto en hoja horizontal (Landscape). Columnas amplias y letras grandes legibles.
+                  </span>
+                </div>
+              </label>
+
+              {/* Opción 2: Bimestre (8 semanas) */}
+              <label 
+                onClick={() => setAlcanceFechas('ultimas-8')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                  padding: '0.8rem 1rem',
+                  borderRadius: '8px',
+                  background: alcanceFechas === 'ultimas-8' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(15, 23, 42, 0.5)',
+                  border: `1.5px solid ${alcanceFechas === 'ultimas-8' ? 'var(--accent-primary)' : 'var(--glass-border)'}`,
+                  cursor: 'pointer'
+                }}
+              >
+                <input 
+                  type="radio" 
+                  name="print-scope" 
+                  checked={alcanceFechas === 'ultimas-8'} 
+                  onChange={() => setAlcanceFechas('ultimas-8')}
+                  style={{ marginTop: '3px', width: 'auto' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <strong style={{ color: 'white', fontSize: '0.92rem' }}>
+                    📈 Planilla Bimestral (Últimas 8 semanas)
+                  </strong>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
+                    Ideal para evaluar asistencia en períodos de 2 meses en hoja apaisada.
+                  </span>
+                </div>
+              </label>
+
+              {/* Opción 3: Un Domingo Específico (Control semanal con firma) */}
+              <label 
+                onClick={() => setAlcanceFechas('fecha-especifica')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                  padding: '0.8rem 1rem',
+                  borderRadius: '8px',
+                  background: alcanceFechas === 'fecha-especifica' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(15, 23, 42, 0.5)',
+                  border: `1.5px solid ${alcanceFechas === 'fecha-especifica' ? 'var(--accent-primary)' : 'var(--glass-border)'}`,
+                  cursor: 'pointer'
+                }}
+              >
+                <input 
+                  type="radio" 
+                  name="print-scope" 
+                  checked={alcanceFechas === 'fecha-especifica'} 
+                  onChange={() => setAlcanceFechas('fecha-especifica')}
+                  style={{ marginTop: '3px', width: 'auto' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <strong style={{ color: 'white', fontSize: '0.92rem' }}>
+                    📋 Control Semanal de 1 Domingo (Con espacio para firma)
+                  </strong>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
+                    Genera la lista del domingo seleccionado con ticket, retiro y espacio para firma de entrega.
+                  </span>
+
+                  {alcanceFechas === 'fecha-especifica' && (
+                    <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <select
+                        value={fechaEspecifica}
+                        onChange={e => setFechaEspecifica(e.target.value)}
+                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.82rem', width: 'auto' }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        {historialFechas.map(f => (
+                          <option key={f.fecha} value={f.fecha}>
+                            {formatearFechaCompleta(f.fecha)}
+                          </option>
+                        ))}
+                      </select>
+                      <label style={{ fontSize: '0.78rem', color: '#93c5fd', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={incluirFirmaEnImpresion} 
+                          onChange={e => setIncluirFirmaEnImpresion(e.target.checked)} 
+                          style={{ width: 'auto' }}
+                        />
+                        Columna Firma
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </label>
+
+              {/* Opción 4: Directorio General sin fechas */}
+              <label 
+                onClick={() => setAlcanceFechas('sin-fechas')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                  padding: '0.8rem 1rem',
+                  borderRadius: '8px',
+                  background: alcanceFechas === 'sin-fechas' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(15, 23, 42, 0.5)',
+                  border: `1.5px solid ${alcanceFechas === 'sin-fechas' ? 'var(--accent-primary)' : 'var(--glass-border)'}`,
+                  cursor: 'pointer'
+                }}
+              >
+                <input 
+                  type="radio" 
+                  name="print-scope" 
+                  checked={alcanceFechas === 'sin-fechas'} 
+                  onChange={() => setAlcanceFechas('sin-fechas')}
+                  style={{ marginTop: '3px', width: 'auto' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <strong style={{ color: 'white', fontSize: '0.92rem' }}>
+                    🗂️ Directorio General (Solo datos del niño y representante)
+                  </strong>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
+                    Imprime lista limpia con teléfonos, salón, salida y total acumulado de asistencias.
+                  </span>
+                </div>
+              </label>
+
+            </div>
+
+            {/* Botones de acción del Modal */}
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setMostrarModalImpresion(false)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--glass-border)',
+                  color: 'white',
+                  padding: '0.6rem 1.2rem',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={ejecutarImpresion}
+                className="btn-primary"
+                style={{
+                  margin: 0,
+                  width: 'auto',
+                  padding: '0.6rem 1.5rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Printer size={16} />
+                Mandar a Imprimir Ahora
+              </button>
+            </div>
+
           </div>
         </div>
       )}
