@@ -478,3 +478,159 @@ button.btn-primary:disabled {
     padding: 0.85rem !important;
   }
 }
+
+/* ===== ESTILOS HOJA DE EXCEL Y MATRIZ DE ASISTENCIA ===== */
+.excel-table-container {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.excel-row:hover {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+}
+
+.excel-row-expanded {
+  background-color: rgba(59, 130, 246, 0.18) !important;
+}
+
+.excel-table th, .excel-table td {
+  transition: background-color 0.15s ease;
+}
+
+/* ===== ESTILOS PROFESIONALES DE IMPRESIÓN (@media print) ===== */
+@media print {
+  /* Configuración de página */
+  @page {
+    size: landscape;
+    margin: 1cm;
+  }
+
+  /* Ocultar elementos de interfaz no relevantes para la impresión */
+  header,
+  nav,
+  .no-print,
+  button,
+  input,
+  select,
+  .modal-overlay,
+  .graduacion-overlay {
+    display: none !important;
+  }
+
+  /* Resetear fondos oscuros a blanco para impresión limpia y económica */
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    background-image: none !important;
+    font-size: 9pt !important;
+  }
+
+  .container {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .glass-panel {
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* Mostrar encabezado formal exclusivo de impresión */
+  .print-only-header {
+    display: block !important;
+    margin-bottom: 12px !important;
+  }
+
+  .excel-table-container {
+    max-height: none !important;
+    overflow: visible !important;
+    border: 1px solid #333333 !important;
+  }
+
+  .excel-table-container > div {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Estilos de la tabla impresa */
+  .excel-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 8pt !important;
+    color: #000000 !important;
+  }
+
+  .excel-table thead {
+    display: table-header-group !important;
+    background: #e2e8f0 !important;
+  }
+
+  .excel-table thead tr {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+    border-bottom: 2px solid #000000 !important;
+  }
+
+  .excel-table th {
+    background: #e2e8f0 !important;
+    color: #000000 !important;
+    border: 1px solid #94a3b8 !important;
+    padding: 4px 6px !important;
+    font-weight: bold !important;
+    text-align: center !important;
+  }
+
+  .excel-table td {
+    color: #000000 !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 3px 5px !important;
+    background: transparent !important;
+  }
+
+  .excel-row {
+    page-break-inside: avoid !important;
+  }
+
+  .excel-row:nth-child(even) {
+    background-color: #f8fafc !important;
+  }
+
+  .excel-expanded-card-row {
+    page-break-inside: avoid !important;
+  }
+
+  .excel-expanded-card-row td {
+    background: #f1f5f9 !important;
+    border: 1px solid #64748b !important;
+    padding: 8px !important;
+  }
+
+  .excel-expanded-card-row div {
+    background: transparent !important;
+    color: #000000 !important;
+    border-color: #94a3b8 !important;
+  }
+
+  .excel-expanded-card-row strong,
+  .excel-expanded-card-row h4,
+  .excel-table strong {
+    color: #000000 !important;
+  }
+
+  /* Indicadores de texto */
+  .excel-table span {
+    color: #000000 !important;
+    border-color: #94a3b8 !important;
+  }
+
+  a {
+    color: #000000 !important;
+    text-decoration: none !important;
+  }
+}

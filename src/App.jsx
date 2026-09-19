@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import ListaEstudiantes from './components/ListaEstudiantes';
 import HistorialDomingos from './components/HistorialDomingos';
+import HojaExcelEstudiantes from './components/HojaExcelEstudiantes';
 import GraduacionAnimation from './components/GraduacionAnimation';
 import RegistroRepresentante from './components/RegistroRepresentante';
 import ModalCerrarDia from './components/ModalCerrarDia';
 import ModalQR from './components/ModalQR';
 import ModalGraduados from './components/ModalGraduados';
-import { Sparkles, Archive, Users, QrCode, UserCheck, GraduationCap } from 'lucide-react';
+import { Archive, Users, QrCode, UserCheck, GraduationCap, FileSpreadsheet } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 function App() {
@@ -278,6 +279,16 @@ function calcularEdad(fechaString) {
           </button>
 
           <button 
+            onClick={() => setVistaActiva('excel')}
+            className={vistaActiva === 'excel' ? 'btn-primary' : 'btn-secondary'}
+            style={vistaActiva !== 'excel' ? { background: 'rgba(16, 124, 65, 0.15)', color: '#4ade80', border: '1px solid rgba(16, 124, 65, 0.35)', padding: '0.75rem 1.2rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' } : { padding: '0.75rem 1.2rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            title="Ver planilla completa estilo Excel, desglose de estudiantes e imprimir"
+          >
+            <FileSpreadsheet size={18} style={{ verticalAlign: 'middle' }}/> 
+            Planilla Excel
+          </button>
+
+          <button 
             onClick={() => setMostrarModalGraduados(true)}
             style={{ background: 'rgba(234, 179, 8, 0.12)', color: '#fef08a', border: '1px solid rgba(234, 179, 8, 0.3)', padding: '0.75rem 1.2rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
             title="Ver registro discreto de estudiantes graduados"
@@ -288,7 +299,7 @@ function calcularEdad(fechaString) {
         </div>
       </header>
 
-      {vistaActiva === 'principal' ? (
+      {vistaActiva === 'principal' && (
         <main style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <section>
             <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
@@ -313,9 +324,17 @@ function calcularEdad(fechaString) {
             <ListaEstudiantes refreshTrigger={refreshTrigger} />
           </section>
         </main>
-      ) : (
+      )}
+
+      {vistaActiva === 'historial' && (
         <main style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <HistorialDomingos />
+        </main>
+      )}
+
+      {vistaActiva === 'excel' && (
+        <main style={{ maxWidth: '1350px', margin: '0 auto', width: '100%' }}>
+          <HojaExcelEstudiantes />
         </main>
       )}
 
