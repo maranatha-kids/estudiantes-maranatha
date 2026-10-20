@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Copy, ExternalLink, QrCode, Check } from 'lucide-react';
+import maranathaLogo from '../assets/maranatha-kids-logo.jpg';
 
 export default function ModalQR({ onClose }) {
   const [copiado, setCopiado] = useState(false);
@@ -57,11 +58,22 @@ export default function ModalQR({ onClose }) {
           <X size={24} />
         </button>
 
-        <div style={{ display: 'inline-flex', padding: '12px', background: 'rgba(59, 130, 246, 0.15)', borderRadius: '50%', marginBottom: '1rem' }}>
-          <QrCode size={36} color="var(--accent-primary)" />
+        <div style={{ marginBottom: '0.8rem' }}>
+          <img 
+            src={maranathaLogo} 
+            alt="Maranatha Kids" 
+            style={{
+              maxWidth: '170px',
+              width: '100%',
+              height: 'auto',
+              borderRadius: '16px',
+              boxShadow: '0 8px 24px -4px rgba(43, 118, 142, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.12)',
+              display: 'inline-block'
+            }}
+          />
         </div>
 
-        <h2 style={{ fontSize: '1.5rem', margin: 0 }}>QR para Representantes</h2>
+        <h2 style={{ fontSize: '1.4rem', margin: 0 }}>QR para Representantes</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.4rem', marginBottom: '1.5rem' }}>
           Escanea este código con la cámara de tu teléfono para registrar tus datos y los del niño/a.
         </p>

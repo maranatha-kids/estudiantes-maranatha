@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Sparkles, User, ShieldCheck, Heart, Plus, AlertCircle, ChevronLeft, LogOut } from 'lucide-react';
 import CampoFechaNacimiento from './CampoFechaNacimiento';
+import maranathaLogo from '../assets/maranatha-kids-logo.jpg';
 
 function calcularEdad(fechaString) {
   if (!fechaString) return 0;
@@ -512,12 +513,23 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
 
       <div className="glass-panel" style={{ padding: '1.25rem 1rem' }}>
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'inline-flex', padding: '10px', background: 'rgba(59, 130, 246, 0.15)', borderRadius: '50%', marginBottom: '0.6rem' }}>
-            <Heart size={28} color="var(--accent-primary)" />
+          <div style={{ marginBottom: '0.8rem' }}>
+            <img 
+              src={maranathaLogo} 
+              alt="Maranatha Kids" 
+              style={{
+                maxWidth: '190px',
+                width: '100%',
+                height: 'auto',
+                borderRadius: '16px',
+                boxShadow: '0 8px 24px -4px rgba(43, 118, 142, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.12)',
+                display: 'inline-block'
+              }}
+            />
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>Registro de Representante</h1>
+          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>Registro de Representante</h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '0.4rem', fontSize: '0.85rem', lineHeight: 1.4 }}>
-            Maranatha Kids — Ingrese sus datos y los del niño/a para obtener su número de turno.
+            Ingrese sus datos y los del niño/a para obtener su número de turno.
           </p>
         </div>
 

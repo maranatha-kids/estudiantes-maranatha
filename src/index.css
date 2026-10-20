@@ -61,7 +61,86 @@ body {
 
 header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2.2rem;
+}
+
+.logo-container {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  margin-bottom: 0.75rem;
+}
+
+.main-app-logo {
+  max-width: 290px;
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+  box-shadow: 0 12px 36px -6px rgba(43, 118, 142, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
+  display: block;
+  user-select: none;
+}
+
+.main-app-logo:hover {
+  transform: translateY(-4px) scale(1.025);
+  box-shadow: 0 18px 45px -4px rgba(43, 118, 142, 0.65), 0 0 0 2px rgba(96, 165, 250, 0.3);
+}
+
+.logo-subtle-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 95%;
+  height: 85%;
+  background: radial-gradient(circle, rgba(43, 118, 142, 0.4) 0%, transparent 75%);
+  filter: blur(24px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .main-app-logo {
+    max-width: 220px;
+    border-radius: 16px;
+  }
+}
+
+.main-app-logo-neon {
+  max-width: 360px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 16px rgba(0, 195, 255, 0.45)) drop-shadow(0 0 35px rgba(0, 119, 255, 0.25));
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.35s ease;
+  user-select: none;
+}
+
+.main-app-logo-neon:hover {
+  transform: translateY(-3px) scale(1.025);
+  filter: drop-shadow(0 0 22px rgba(0, 195, 255, 0.75)) drop-shadow(0 0 50px rgba(0, 119, 255, 0.45));
+}
+
+@media (max-width: 480px) {
+  .main-app-logo-neon {
+    max-width: 260px;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 header h1 {
@@ -70,12 +149,13 @@ header h1 {
   background: var(--accent-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
-header p {
+header p, .header-subtitle {
   color: var(--text-secondary);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.2px;
 }
 
 .glass-panel {

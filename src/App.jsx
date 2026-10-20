@@ -9,6 +9,8 @@ import ModalQR from './components/ModalQR';
 import ModalGraduados from './components/ModalGraduados';
 import { Archive, Users, QrCode, UserCheck, GraduationCap, FileSpreadsheet } from 'lucide-react';
 import { supabase } from './lib/supabase';
+import maranathaLogo from './assets/maranatha-kids-logo.jpg';
+import maranathaLogoNeon from './assets/maranatha-kids-neon.png';
 
 function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -221,10 +223,15 @@ function calcularEdad(fechaString) {
   return (
     <div className="container">
       <header>
-        <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-          Maranatha Kids
-        </h1>
-        <p>Sistema de Gestión y Transición de Salones</p>
+        <div className="logo-container" style={{ marginBottom: '0.4rem' }}>
+          <img 
+            src={maranathaLogoNeon} 
+            alt="Maranatha Kids" 
+            className="main-app-logo-neon"
+          />
+        </div>
+        <h1 className="sr-only">Maranatha Kids</h1>
+        <p className="header-subtitle">Sistema de Gestión y Transición de Salones</p>
 
         {/* Botón destacado para mostrar QR a los representantes */}
         <div style={{ marginTop: '1.2rem', textAlign: 'center' }}>
