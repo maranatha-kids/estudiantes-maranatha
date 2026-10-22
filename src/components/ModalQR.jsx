@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Copy, ExternalLink, QrCode, Check } from 'lucide-react';
-import maranathaLogo from '../assets/maranatha-kids-logo.jpg';
+import maranathaLogoNeon from '../assets/maranatha-kids-neon.png';
 
 export default function ModalQR({ onClose }) {
   const [copiado, setCopiado] = useState(false);
@@ -58,18 +58,11 @@ export default function ModalQR({ onClose }) {
           <X size={24} />
         </button>
 
-        <div style={{ marginBottom: '0.8rem' }}>
+        <div style={{ marginBottom: '0.6rem', display: 'flex', justifyContent: 'center' }}>
           <img 
-            src={maranathaLogo} 
+            src={maranathaLogoNeon} 
             alt="Maranatha Kids" 
-            style={{
-              maxWidth: '170px',
-              width: '100%',
-              height: 'auto',
-              borderRadius: '16px',
-              boxShadow: '0 8px 24px -4px rgba(43, 118, 142, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.12)',
-              display: 'inline-block'
-            }}
+            className="brand-logo-neon modal-logo-neon"
           />
         </div>
 

@@ -9,7 +9,6 @@ import ModalQR from './components/ModalQR';
 import ModalGraduados from './components/ModalGraduados';
 import { Archive, Users, QrCode, UserCheck, GraduationCap, FileSpreadsheet } from 'lucide-react';
 import { supabase } from './lib/supabase';
-import maranathaLogo from './assets/maranatha-kids-logo.jpg';
 import maranathaLogoNeon from './assets/maranatha-kids-neon.png';
 
 function App() {
@@ -227,7 +226,7 @@ function calcularEdad(fechaString) {
           <img 
             src={maranathaLogoNeon} 
             alt="Maranatha Kids" 
-            className="main-app-logo-neon"
+            className="brand-logo-neon main-app-logo-neon"
           />
         </div>
         <h1 className="sr-only">Maranatha Kids</h1>

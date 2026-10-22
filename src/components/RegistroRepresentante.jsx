@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Sparkles, User, ShieldCheck, Heart, Plus, AlertCircle, ChevronLeft, LogOut } from 'lucide-react';
 import CampoFechaNacimiento from './CampoFechaNacimiento';
-import maranathaLogo from '../assets/maranatha-kids-logo.jpg';
+import maranathaLogoNeon from '../assets/maranatha-kids-neon.png';
 
 function calcularEdad(fechaString) {
   if (!fechaString) return 0;
@@ -436,9 +436,14 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
       <div style={{ maxWidth: '500px', margin: '1rem auto', padding: '0 0.5rem', animation: 'fadeIn 0.4s ease-out' }}>
         <div className="glass-panel" style={{ textAlign: 'center', position: 'relative', overflow: 'hidden', border: '2px solid var(--accent-primary)', padding: '1.5rem 1rem' }}>
           <div style={{ background: 'var(--accent-gradient)', padding: '1.2rem 1rem', margin: '-1.5rem -1rem 1.2rem -1rem', color: 'white' }}>
-            <Sparkles size={32} style={{ marginBottom: '0.4rem' }} />
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
+              <img 
+                src={maranathaLogoNeon} 
+                alt="Maranatha Kids" 
+                className="brand-logo-neon ticket-logo-neon"
+              />
+            </div>
             <h2 style={{ fontSize: '1.6rem', margin: 0 }}>¡Registro Exitoso!</h2>
-            <p style={{ margin: '0.3rem 0 0 0', opacity: 0.9, fontSize: '0.9rem' }}>Maranatha Kids</p>
           </div>
 
           {ticketGuardado.esGraduado ? (
@@ -513,18 +518,11 @@ export default function RegistroRepresentante({ onVolverAlPanel, esPublico = fal
 
       <div className="glass-panel" style={{ padding: '1.25rem 1rem' }}>
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ marginBottom: '0.8rem' }}>
+          <div style={{ marginBottom: '0.8rem', display: 'flex', justifyContent: 'center' }}>
             <img 
-              src={maranathaLogo} 
+              src={maranathaLogoNeon} 
               alt="Maranatha Kids" 
-              style={{
-                maxWidth: '190px',
-                width: '100%',
-                height: 'auto',
-                borderRadius: '16px',
-                boxShadow: '0 8px 24px -4px rgba(43, 118, 142, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.12)',
-                display: 'inline-block'
-              }}
+              className="brand-logo-neon form-logo-neon"
             />
           </div>
           <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>Registro de Representante</h1>

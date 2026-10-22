@@ -108,8 +108,7 @@ header {
   }
 }
 
-.main-app-logo-neon {
-  max-width: 360px;
+.brand-logo-neon {
   width: 100%;
   height: auto;
   display: block;
@@ -120,14 +119,39 @@ header {
   user-select: none;
 }
 
-.main-app-logo-neon:hover {
+.brand-logo-neon:hover {
   transform: translateY(-3px) scale(1.025);
   filter: drop-shadow(0 0 22px rgba(0, 195, 255, 0.75)) drop-shadow(0 0 50px rgba(0, 119, 255, 0.45));
+}
+
+.main-app-logo-neon {
+  max-width: 360px;
+}
+
+.modal-logo-neon {
+  max-width: 210px;
+}
+
+.form-logo-neon {
+  max-width: 230px;
+}
+
+.ticket-logo-neon {
+  max-width: 180px;
 }
 
 @media (max-width: 480px) {
   .main-app-logo-neon {
     max-width: 260px;
+  }
+  .modal-logo-neon {
+    max-width: 175px;
+  }
+  .form-logo-neon {
+    max-width: 190px;
+  }
+  .ticket-logo-neon {
+    max-width: 150px;
   }
 }
 
