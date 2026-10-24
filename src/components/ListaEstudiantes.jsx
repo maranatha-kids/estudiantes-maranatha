@@ -93,6 +93,13 @@ export default function ListaEstudiantes({ refreshTrigger }) {
       .trim();
   };
 
+  const formatearFechaNac = (fecha) => {
+    if (!fecha) return null;
+    const partes = fecha.split('T')[0].split('-');
+    if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    return fecha;
+  };
+
   // VISTA NIVEL 2: Detalle de un salón
   if (salonSeleccionado) {
     const lista = (agrupados[salonSeleccionado] || []).slice().sort((a, b) => {
@@ -178,7 +185,17 @@ export default function ListaEstudiantes({ refreshTrigger }) {
                       </div>
                       
                       <div className="estudiante-nombre" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{e.nombre} {e.apellido}</div>
-                      <div className="estudiante-edad" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{e.edad} años ({e.genero || 'No especificado'})</div>
+                      <div className="estudiante-edad" style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                        <span><strong>{e.edad}</strong> años</span>
+                        {formatearFechaNac(e.fecha_nacimiento) && (
+                          <>
+                            <span style={{ opacity: 0.5 }}>•</span>
+                            <span style={{ color: '#93c5fd' }}>F. Nac: <strong>{formatearFechaNac(e.fecha_nacimiento)}</strong></span>
+                          </>
+                        )}
+                        <span style={{ opacity: 0.5 }}>•</span>
+                        <span>{e.genero || 'No especificado'}</span>
+                      </div>
                       
                       {nombreRepLimpio && (
                         <div className="estudiante-rep" style={{ marginTop: '0.6rem', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--glass-border)', padding: '0.5rem', borderRadius: '6px' }}>

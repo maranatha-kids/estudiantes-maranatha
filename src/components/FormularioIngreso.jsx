@@ -92,6 +92,13 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
       .trim();
   };
 
+  const formatearFechaNac = (fecha) => {
+    if (!fecha) return null;
+    const partes = fecha.split('T')[0].split('-');
+    if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    return fecha;
+  };
+
   // Generar número de ticket único para el día activo (iniciando desde 001, ignorando graduados)
   const generarTicket = async () => {
     try {
@@ -432,8 +439,15 @@ export default function FormularioIngreso({ onEstudianteAgregado, onGraduacion }
                       {est.nombre} {est.apellido}
                     </div>
 
-                    <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                      {edadEst > 0 ? `${edadEst} años` : ''} {est.genero ? `(${est.genero})` : ''}
+                    <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      {edadEst > 0 ? <span><strong>{edadEst}</strong> años</span> : ''}
+                      {formatearFechaNac(est.fecha_nacimiento) && (
+                        <>
+                          <span style={{ opacity: 0.5 }}>•</span>
+                          <span style={{ color: '#93c5fd' }}>F. Nac: <strong>{formatearFechaNac(est.fecha_nacimiento)}</strong></span>
+                        </>
+                      )}
+                      {est.genero ? <span><span style={{ opacity: 0.5 }}>•</span> ({est.genero})</span> : ''}
                     </div>
 
                     {nombreRepLimpio && (

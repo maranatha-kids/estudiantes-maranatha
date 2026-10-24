@@ -96,7 +96,6 @@ export default function HojaExcelEstudiantes() {
   const [alcanceFechas, setAlcanceFechas] = useState('ultimas-4'); // 'ultimas-4' | 'ultimas-8' | 'fecha-especifica' | 'sin-fechas' | 'todas'
   const [fechaEspecifica, setFechaEspecifica] = useState('');
   const [mostrarModalImpresion, setMostrarModalImpresion] = useState(false);
-  const [incluirFirmaEnImpresion, setIncluirFirmaEnImpresion] = useState(true);
 
   useEffect(() => {
     cargarDatos();
@@ -816,6 +815,7 @@ export default function HojaExcelEstudiantes() {
                   <th style={{ padding: '0.7rem 0.3rem', width: '30px', textAlign: 'center' }} className="no-print">Ver</th>
                   <th style={{ padding: '0.7rem 0.6rem', minWidth: '170px' }}>Estudiante</th>
                   <th style={{ padding: '0.7rem 0.4rem', minWidth: '55px', textAlign: 'center' }}>Edad</th>
+                  <th style={{ padding: '0.7rem 0.4rem', minWidth: '95px', textAlign: 'center' }}>F. Nacimiento</th>
                   <th style={{ padding: '0.7rem 0.4rem', minWidth: '50px', textAlign: 'center' }}>Sexo</th>
                   <th style={{ padding: '0.7rem 0.6rem', minWidth: '110px' }}>Salón</th>
                   <th style={{ padding: '0.7rem 0.6rem', minWidth: '150px' }}>Representante</th>
@@ -841,13 +841,6 @@ export default function HojaExcelEstudiantes() {
                       <div style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', fontWeight: 400 }}>Domingo</div>
                     </th>
                   ))}
-
-                  {/* Columna opcional para impresión de 1 solo domingo: Firma / Observación */}
-                  {alcanceFechas === 'fecha-especifica' && incluirFirmaEnImpresion && (
-                    <th style={{ padding: '0.7rem 0.6rem', minWidth: '130px', textAlign: 'center' }} className="print-only-col">
-                      Firma de Retiro / Tutor
-                    </th>
-                  )}
                 </tr>
               </thead>
 
@@ -907,6 +900,15 @@ export default function HojaExcelEstudiantes() {
                         <td style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: 'white' }}>
                           <strong>{est.edadCalculada}</strong>
                           <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginLeft: '2px' }}>a</span>
+                        </td>
+
+                        {/* Fecha de Nacimiento */}
+                        <td style={{ padding: '0.6rem 0.4rem', textAlign: 'center', color: '#e2e8f0', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                          {est.fecha_nacimiento ? (
+                            <span>{formatearFechaCompleta(est.fecha_nacimiento)}</span>
+                          ) : (
+                            <span style={{ color: '#64748b' }}>—</span>
+                          )}
                         </td>
 
                         {/* Género */}
@@ -1047,18 +1049,12 @@ export default function HojaExcelEstudiantes() {
                           );
                         })}
 
-                        {/* Espacio para firma manuscrita si es domingo específico */}
-                        {alcanceFechas === 'fecha-especifica' && incluirFirmaEnImpresion && (
-                          <td style={{ borderLeft: '1px dashed #ccc', height: '26px' }} className="print-only-col">
-                            {/* Celda vacía para firma en hoja de papel */}
-                          </td>
-                        )}
                       </tr>
 
                       {/* ================= FILA EXPANDIDA: DESGLOSE COMPLETO ================= */}
                       {estaExpandida && (
                         <tr className="excel-expanded-card-row">
-                          <td colSpan={11 + (modoVista === 'matriz' ? fechasSeleccionadas.length : 0) + (alcanceFechas === 'fecha-especifica' && incluirFirmaEnImpresion ? 1 : 0)} style={{ padding: '0.75rem 1.25rem', background: 'rgba(15, 23, 42, 0.75)', borderBottom: '2px solid var(--accent-primary)' }}>
+                          <td colSpan={12 + (modoVista === 'matriz' ? fechasSeleccionadas.length : 0)} style={{ padding: '0.75rem 1.25rem', background: 'rgba(15, 23, 42, 0.75)', borderBottom: '2px solid var(--accent-primary)' }}>
                             <div style={{
                               background: 'rgba(2, 6, 23, 0.6)',
                               borderRadius: '8px',
@@ -1279,7 +1275,7 @@ export default function HojaExcelEstudiantes() {
                 </div>
               </label>
 
-              {/* Opción 3: Un Domingo Específico (Control semanal con firma) */}
+              {/* Opción 3: Un Domingo Específico */}
               <label 
                 onClick={() => setAlcanceFechas('fecha-especifica')}
                 style={{
@@ -1302,10 +1298,10 @@ export default function HojaExcelEstudiantes() {
                 />
                 <div style={{ flex: 1 }}>
                   <strong style={{ color: 'white', fontSize: '0.92rem' }}>
-                    📋 Control Semanal de 1 Domingo (Con espacio para firma)
+                    📋 Control Semanal de 1 Domingo
                   </strong>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
-                    Genera la lista del domingo seleccionado con ticket, retiro y espacio para firma de entrega.
+                    Genera la planilla del domingo seleccionado con ticket, salón, edad, fecha de nacimiento y asistencia.
                   </span>
 
                   {alcanceFechas === 'fecha-especifica' && (
@@ -1322,15 +1318,6 @@ export default function HojaExcelEstudiantes() {
                           </option>
                         ))}
                       </select>
-                      <label style={{ fontSize: '0.78rem', color: '#93c5fd', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={incluirFirmaEnImpresion} 
-                          onChange={e => setIncluirFirmaEnImpresion(e.target.checked)} 
-                          style={{ width: 'auto' }}
-                        />
-                        Columna Firma
-                      </label>
                     </div>
                   )}
                 </div>
